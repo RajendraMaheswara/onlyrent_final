@@ -94,23 +94,12 @@
                                 </div>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control" id="status" name="status" 
-                                            value="<?php echo isset($pemilik['status']) ? ($pemilik['status'] == 1 ? 'Aktif' : 'Non-Aktif') : 'Status Tidak Ditemukan'; ?>" 
-                                            disabled>
-                                        <label for="status">Status</label>
-                                    </div>
-                                </div>
-                            </div>
-
                             <div class="d-flex justify-content-between align-items-center mt-4">
                                 <a href="tabel_pemilik.php" class="btn-back">
                                     <i class="fas fa-arrow-left me-2"></i>
                                     Kembali
                                 </a>
-                                <a href="edit_pemilik.php?id=<?php echo $pemilik['id_pemilik']; ?>" class="btn-edit">
+                                <a href="edit_pemilik.php?id=<?php echo $pemilik['id_pemilik']; ?>" class="btn-editt">
                                     <i class="fas fa-edit me-2"></i>
                                     Edit Pemilik
                                 </a>

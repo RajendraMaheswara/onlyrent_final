@@ -18,6 +18,15 @@ class Penyewa {
         return $result->fetch_assoc();
     }
 
+    // In Penyewa.php
+public function getAll() {
+    $query = "SELECT * FROM penyewa";
+    $stmt = $this->conn->prepare($query);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    return $result->fetch_all(MYSQLI_ASSOC);
+}
+
     // Get penyewa by ID pengguna
     public function getByIdPengguna($id_pengguna) {
         $stmt = $this->conn->prepare("SELECT * FROM penyewa WHERE id_pengguna = ?");

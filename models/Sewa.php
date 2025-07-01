@@ -2,62 +2,122 @@
 class Sewa {
     private $conn;
 
-    // Constructor
     public function __construct($db) {
         $this->conn = $db;
     }
 
-    // Get all sewa
-    public function getAll() {
-        $sql = "SELECT * FROM sewa";
-        $stmt = $this->conn->query($sql);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Create new rental
+    public function create($id_barang, $id_penyewa, $tanggal_sewa, $tanggal_kembali, $total_bayar) {
+        $stmt = $this->conn->prepare("INSERT INTO sewa 
+            (id_barang, id_penyewa, tanggalSewa, tanggalKembali, totalBayar, status) 
+            VALUES (?, ?, ?, ?, ?, 1)");
+        $stmt->bind_param("iissi", $id_barang, $id_penyewa, $tanggal_sewa, $tanggal_kembali, $total_bayar);
+        
+        if ($stmt->execute()) {
+            return $this->conn->insert_id;
+        } else {
+            throw new Exception("Gagal membuat sewa: " . $stmt->error);
+        }
     }
 
-    // Get sewa by ID
-    public function getById($id) {
-        $sql = "SELECT * FROM sewa WHERE id_sewa = :id";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindParam(':id', $id);
+    // Update rental
+    public function update($id_sewa, $data) {
+    $query = "UPDATE sewa SET ";
+    $params = [];
+    $types = "";
+    
+    foreach ($data as $key => $value) {
+        $query .= "$key = ?, ";
+        $params[] = $value;
+        $types .= $this->getParamType($value);
+    }
+    
+    $query = rtrim($query, ", ");
+    $query .= " WHERE id_sewa = ?";
+    $params[] = $id_sewa;
+    $types .= "i";
+    
+    $stmt = $this->conn->prepare($query);
+    $stmt->bind_param($types, ...$params);
+    
+    if (!$stmt->execute()) {
+        throw new Exception("Gagal memperbarui sewa: " . $stmt->error);
+    }
+    return true;
+}
+
+    // Get rental by ID
+    public function getById($id_sewa) {
+        $stmt = $this->conn->prepare("SELECT s.*, b.nama_barang, p.nama as nama_penyewa 
+                                    FROM sewa s
+                                    JOIN barang b ON s.id_barang = b.id_barang
+                                    JOIN penyewa p ON s.id_penyewa = p.id_penyewa
+                                    WHERE s.id_sewa = ?");
+        $stmt->bind_param("i", $id_sewa);
         $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->get_result();
+        return $result->fetch_assoc();
     }
 
-    // Create new sewa
-    public function create($id_barang, $id_penyewa, $tanggalSewa, $tanggalKembali, $totalBayar, $status) {
-        $sql = "INSERT INTO sewa (id_barang, id_penyewa, tanggalSewa, tanggalKembali, totalBayar, status) 
-                VALUES (:id_barang, :id_penyewa, :tanggalSewa, :tanggalKembali, :totalBayar, :status)";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindParam(':id_barang', $id_barang);
-        $stmt->bindParam(':id_penyewa', $id_penyewa);
-        $stmt->bindParam(':tanggalSewa', $tanggalSewa);
-        $stmt->bindParam(':tanggalKembali', $tanggalKembali);
-        $stmt->bindParam(':totalBayar', $totalBayar);
-        $stmt->bindParam(':status', $status);
-        return $stmt->execute();
+    // Get all rentals
+    public function getAll($filter = []) {
+        $query = "SELECT s.*, b.nama_barang, p.nama as nama_penyewa 
+                 FROM sewa s
+                 JOIN barang b ON s.id_barang = b.id_barang
+                 JOIN penyewa p ON s.id_penyewa = p.id_penyewa
+                 WHERE 1=1";
+        
+        $params = [];
+        $types = "";
+        
+        // Add filters
+        if (!empty($filter['id_penyewa'])) {
+            $query .= " AND s.id_penyewa = ?";
+            $params[] = $filter['id_penyewa'];
+            $types .= "i";
+        }
+        
+        if (!empty($filter['id_barang'])) {
+            $query .= " AND s.id_barang = ?";
+            $params[] = $filter['id_barang'];
+            $types .= "i";
+        }
+        
+        if (!empty($filter['status'])) {
+            $query .= " AND s.status = ?";
+            $params[] = $filter['status'];
+            $types .= "i";
+        }
+        
+        $query .= " ORDER BY s.tanggalSewa DESC";
+        
+        $stmt = $this->conn->prepare($query);
+        
+        if (!empty($params)) {
+            $stmt->bind_param($types, ...$params);
+        }
+        
+        $stmt->execute();
+        $result = $stmt->get_result();
+        return $result->fetch_all(MYSQLI_ASSOC);
     }
 
-    // Update sewa
-    public function update($id, $id_barang, $id_penyewa, $tanggalSewa, $tanggalKembali, $totalBayar, $status) {
-        $sql = "UPDATE sewa SET id_barang = :id_barang, id_penyewa = :id_penyewa, tanggalSewa = :tanggalSewa, 
-                tanggalKembali = :tanggalKembali, totalBayar = :totalBayar, status = :status WHERE id_sewa = :id";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindParam(':id', $id);
-        $stmt->bindParam(':id_barang', $id_barang);
-        $stmt->bindParam(':id_penyewa', $id_penyewa);
-        $stmt->bindParam(':tanggalSewa', $tanggalSewa);
-        $stmt->bindParam(':tanggalKembali', $tanggalKembali);
-        $stmt->bindParam(':totalBayar', $totalBayar);
-        $stmt->bindParam(':status', $status);
-        return $stmt->execute();
+    // Update rental status
+    public function updateStatus($id_sewa, $status) {
+        $stmt = $this->conn->prepare("UPDATE sewa SET status = ? WHERE id_sewa = ?");
+        $stmt->bind_param("ii", $status, $id_sewa);
+        
+        if (!$stmt->execute()) {
+            throw new Exception("Gagal mengupdate status sewa: " . $stmt->error);
+        }
+        return true;
     }
 
-    // Delete sewa
-    public function delete($id) {
-        $sql = "DELETE FROM sewa WHERE id_sewa = :id";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindParam(':id', $id);
-        return $stmt->execute();
+    // Helper function to determine parameter type
+    private function getParamType($value) {
+        if (is_int($value)) return "i";
+        if (is_double($value)) return "d";
+        return "s";
     }
 }
 ?>

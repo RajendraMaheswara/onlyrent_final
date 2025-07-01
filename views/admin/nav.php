@@ -27,18 +27,28 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link <?php echo ($current_page == 'tabel_pemilik.php' || $current_page == 'tambah_pemilik.php' || $current_page == 'edit_pemilik.php' || $current_page == 'lihat_pemilik.php') ? 'active' : ''; ?>" href="tabel_pemilik.php">
-                <i class="fas fa-user-tie"></i> Tabel Pemilik
-            </a>
-        </li>
-        <li class="nav-item">
             <a class="nav-link <?php echo ($current_page == 'tabel_penyewa.php' || $current_page == 'tambah_penyewa.php' || $current_page == 'edit_penyewa.php' || $current_page == 'lihat_penyewa.php') ? 'active' : ''; ?>" href="tabel_penyewa.php">
                 <i class="fas fa-user-check"></i> Tabel Penyewa
             </a>
         </li>
         <li class="nav-item">
+            <a class="nav-link <?php echo ($current_page == 'tabel_pemilik.php' || $current_page == 'tambah_pemilik.php' || $current_page == 'edit_pemilik.php' || $current_page == 'lihat_pemilik.php') ? 'active' : ''; ?>" href="tabel_pemilik.php">
+                <i class="fas fa-user-tie"></i> Tabel Pemilik
+            </a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link <?php echo ($current_page == 'tabel_barang.php' || $current_page == 'tambah_barang.php' || $current_page == 'edit_barang.php' || $current_page == 'lihat_barang.php') ? 'active' : ''; ?>" href="tabel_barang.php">
                 <i class="fas fa-box"></i> Tabel Barang
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <?php echo ($current_page == 'tabel_sewa.php' || $current_page == 'tambah_sewa.php' || $current_page == 'edit_sewa.php' || $current_page == 'lihat_sewa.php') ? 'active' : ''; ?>" href="tabel_sewa.php">
+                <i class="fas fa-box"></i> Tabel Sewa
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <?php echo ($current_page == 'tabel_transaksi.php' || $current_page == 'tambah_transaksi.php' || $current_page == 'edit_transaksi.php' || $current_page == 'lihat_transaksi.php') ? 'active' : ''; ?>" href="tabel_transaksi.php">
+                <i class="fas fa-box"></i> Tabel Transaksi
             </a>
         </li>
     </ul>
