@@ -1,58 +1,45 @@
 <?php
-    session_start();
-    if (!isset($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 1)) {
-        header("Location: ../../login.php");
-        exit();
-    }
+session_start();
+// Only allow pemilik (role 3) to access
+if (!isset($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+    header("Location: ../login.php");
+    exit();
+}
 
-    // Include koneksi database dan model
-    require_once '../../config/connect_db.php';
-    require_once '../../models/Barang.php';
-    require_once '../../models/PemilikBarang.php';
-    require_once '../../models/Pengguna.php';
+// Verify pemilik has an id_pemilik
+$id_pemilik = $_SESSION['user']['id_pemilik'] ?? 0;
+if ($id_pemilik == 0) {
+    $_SESSION['error'] = "Data pemilik tidak valid";
+    header("Location: ../login.php");
+    exit();
+}
 
-    // Ambil data barang yang akan diedit
-    if (!isset($_GET['id'])) {
-        $_SESSION['error'] = "Barang ID tidak valid";
-        header("Location: tabel_barang.php");
-        exit();
-    }
+// Include database connection and models
+require_once '../../config/connect_db.php';
+require_once '../../models/Barang.php';
 
-    $db = getDBConnection();
-    $barang_model = new Barang($db);
-    $pemilik_model = new PemilikBarang($db);
-    $pengguna_model = new Pengguna($db);
-    
-    $barang_data = $barang_model->getById($_GET['id']);
-    
-    // Get pemilik data by joining pemilik_barang and pengguna tables
-    if ($_SESSION['user']['role'] == 1) { // Admin can see all pemilik
-        $query = "SELECT pb.*, pg.username, pg.email 
-                  FROM pemilik_barang pb
-                  JOIN pengguna pg ON pb.id_pengguna = pg.id_pengguna";
-        $stmt = $db->prepare($query);
-        $stmt->execute();
-        $pemilik_data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-    } else { // Pemilik can only see their own data
-        $query = "SELECT pb.*, pg.username, pg.email 
-                  FROM pemilik_barang pb
-                  JOIN pengguna pg ON pb.id_pengguna = pg.id_pengguna
-                  WHERE pb.id_pemilik = ?";
-        $stmt = $db->prepare($query);
-        $stmt->bind_param("i", $_SESSION['user']['id_pemilik']);
-        $stmt->execute();
-        $pemilik_data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-    }
+// Check if barang ID is provided
+if (!isset($_GET['id'])) {
+    $_SESSION['error'] = "Barang ID tidak valid";
+    header("Location: daftar_barang.php");
+    exit();
+}
 
-    if (!$barang_data) {
-        $_SESSION['error'] = "Barang tidak ditemukan";
-        header("Location: tabel_barang.php");
-        exit();
-    }
+$db = getDBConnection();
+$barang_model = new Barang($db);
 
-    // Decode gambar JSON
-    $gambar_barang = json_decode($barang_data['gambar'], true) ?? [];
-    $username = $_SESSION['user']['username'];
+// Get barang data and verify ownership
+$barang_data = $barang_model->getById($_GET['id'], $id_pemilik);
+
+if (!$barang_data) {
+    $_SESSION['error'] = "Barang tidak ditemukan atau tidak memiliki akses";
+    header("Location: daftar_barang.php");
+    exit();
+}
+
+// Decode gambar JSON
+$gambar_barang = json_decode($barang_data['gambar'], true) ?? [];
+$username = $_SESSION['user']['username'];
 ?>
 
 <!DOCTYPE html>
@@ -105,7 +92,7 @@
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
+    <!-- Mobile Menu Overlay -->
     <div class="mobile-overlay"></div>
     <?php include('nav.php'); ?>
 
@@ -132,32 +119,14 @@
                             </h4>
                         </div>
                         <div class="card-body">
-                            <form id="barangForm" action="/controllers/BarangController.php?action=update" method="POST" enctype="multipart/form-data">
+                            <form id="barangForm" action="/controllers/pemilik/BarangController.php?action=update" method="POST" enctype="multipart/form-data">
                                 <input type="hidden" name="id_barang" value="<?php echo htmlspecialchars($barang_data['id_barang']); ?>">
+                                <input type="hidden" name="id_pemilik" value="<?php echo $id_pemilik; ?>">
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-floating mb-3">
-                                            <select class="form-select" id="id_pemilik" name="id_pemilik" required <?php echo ($_SESSION['user']['role'] == 3) ? 'disabled' : ''; ?>>
-                                                <?php foreach ($pemilik_data as $pemilik): ?>
-                                                    <option value="<?php echo $pemilik['id_pemilik']; ?>" <?php echo ($pemilik['id_pemilik'] == $barang_data['id_pemilik']) ? 'selected' : ''; ?>>
-                                                        <?php echo htmlspecialchars($pemilik['nama']); ?>
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                            <label for="id_pemilik">Pemilik Barang</label>
-                                            <?php if ($_SESSION['user']['role'] == 3): ?>
-                                                <input type="hidden" name="id_pemilik" value="<?php echo $barang_data['id_pemilik']; ?>">
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-floating mb-3">
-                                            <input type="text" class="form-control" id="nama_barang" name="nama_barang" 
-                                                   placeholder="Nama Barang" value="<?php echo htmlspecialchars($barang_data['nama_barang']); ?>" required>
-                                            <label for="nama_barang">Nama Barang</label>
-                                        </div>
-                                    </div>
+                                <div class="form-floating mb-3">
+                                    <input type="text" class="form-control" id="nama_barang" name="nama_barang" 
+                                           placeholder="Nama Barang" value="<?php echo htmlspecialchars($barang_data['nama_barang']); ?>" required>
+                                    <label for="nama_barang">Nama Barang</label>
                                 </div>
 
                                 <div class="form-floating mb-3">
@@ -172,6 +141,15 @@
                                             <input type="number" class="form-control" id="harga_sewa" name="harga_sewa" 
                                                    placeholder="Harga Sewa" value="<?php echo htmlspecialchars($barang_data['harga_sewa']); ?>" required>
                                             <label for="harga_sewa">Harga Sewa (per hari)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating mb-3">
+                                            <select class="form-select" id="status" name="status" required>
+                                                <option value="1" <?php echo ($barang_data['status'] == 1) ? 'selected' : ''; ?>>Tersedia</option>
+                                                <option value="0" <?php echo ($barang_data['status'] == 0) ? 'selected' : ''; ?>>Tidak Tersedia</option>
+                                            </select>
+                                            <label for="status">Status Barang</label>
                                         </div>
                                     </div>
                                 </div>
@@ -200,11 +178,11 @@
                                 </div>
 
                                 <div class="d-flex justify-content-between align-items-center mt-4">
-                                    <a href="tabel_barang.php" class="btn-back">
+                                    <a href="tabel_barang.php" class="btn btn-secondary">
                                         <i class="fas fa-arrow-left me-2"></i>
                                         Kembali
                                     </a>
-                                    <button type="submit" class="btn btn-primary btn-submit">
+                                    <button type="submit" class="btn btn-primary">
                                         <i class="fas fa-save me-2"></i>
                                         Update Barang
                                     </button>
@@ -251,7 +229,7 @@
                     return false;
                 }
 
-                // Check if at least one image remains (either existing not deleted or new uploaded)
+                // Check if at least one image remains
                 const remainingExisting = document.querySelectorAll('#existingImages .image-preview-item').length;
                 const fileInput = document.getElementById('gambar');
                 const newFiles = fileInput.files.length;

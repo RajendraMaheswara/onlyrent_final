@@ -1,37 +1,26 @@
 <?php
     session_start();
     if (!isset($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
-        header("Location: ../login.php");
+        header("Location: ../../login.php");
         exit();
     }
     $username = $_SESSION['user']['username'];
 
-    // Koneksi ke database
     require_once '../../config/connect_db.php';
     $conn = getDBConnection();
 
-    // Ambil daftar barang yang tersedia
-    $barang_query = "SELECT b.id_barang, b.nama_barang, b.harga_sewa, pb.nama as nama_pemilik 
-                     FROM barang b
-                     JOIN pemilik_barang pb ON b.id_pemilik = pb.id_pemilik
-                     WHERE b.status = 1";
-    $barang_result = $conn->query($barang_query);
-    $daftar_barang = [];
-    if ($barang_result && $barang_result->num_rows > 0) {
-        while ($row = $barang_result->fetch_assoc()) {
-            $daftar_barang[] = $row;
-        }
-    }
-
-    // Ambil daftar penyewa
-    $penyewa_query = "SELECT p.id_penyewa, p.nama, pg.username 
-                      FROM penyewa p
-                      JOIN pengguna pg ON p.id_pengguna = pg.id_pengguna";
-    $penyewa_result = $conn->query($penyewa_query);
-    $daftar_penyewa = [];
-    if ($penyewa_result && $penyewa_result->num_rows > 0) {
-        while ($row = $penyewa_result->fetch_assoc()) {
-            $daftar_penyewa[] = $row;
+    $sewa_query = "SELECT s.id_sewa, s.tanggalSewa, s.tanggalKembali, s.totalBayar, 
+                          b.nama_barang, p.nama as nama_penyewa
+                   FROM sewa s
+                   JOIN barang b ON s.id_barang = b.id_barang
+                   JOIN penyewa p ON s.id_penyewa = p.id_penyewa
+                   WHERE s.status = 1 AND 
+                   NOT EXISTS (SELECT 1 FROM transaksi t WHERE t.id_sewa = s.id_sewa)";
+    $sewa_result = $conn->query($sewa_query);
+    $daftar_sewa = [];
+    if ($sewa_result && $sewa_result->num_rows > 0) {
+        while ($row = $sewa_result->fetch_assoc()) {
+            $daftar_sewa[] = $row;
         }
     }
 
@@ -66,12 +55,11 @@
             color: #0d6efd;
             margin-top: 5px;
         }
-        .date-picker-icon {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            pointer-events: none;
+        .preview-image {
+            max-width: 200px;
+            max-height: 200px;
+            margin-top: 10px;
+            display: none;
         }
     </style>
 </head>
@@ -107,87 +95,53 @@
                     <div class="card form-card">
                         <div class="card-header">
                             <h4>
-                                <i class="fas fa-exchange-alt"></i>
-                                Tambah Transaksi Sewa
+                                <i class="fas fa-money-bill-wave"></i>
+                                Tambah Transaksi Pembayaran
                             </h4>
                         </div>
                         <div class="card-body">
-                            <form id="transaksiForm" action="/controllers/TransaksiController.php?action=create" method="POST" novalidate>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="id_barang" class="form-label">Barang Disewa</label>
-                                        <select class="form-select" id="id_barang" name="id_barang" required>
-                                            <option value="" selected disabled>Pilih Barang</option>
-                                            <?php foreach ($daftar_barang as $barang): ?>
-                                                <option value="<?php echo $barang['id_barang']; ?>" data-harga="<?php echo $barang['harga_sewa']; ?>">
-                                                    <?php echo htmlspecialchars($barang['nama_barang'] . ' - ' . $barang['nama_pemilik'] . ' (Rp ' . number_format($barang['harga_sewa'], 0, ',', '.') . '/hari)'); ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                        <div class="invalid-feedback">Silakan pilih barang</div>
-                                    </div>
-                                    
-                                    <div class="col-md-6 mb-3">
-                                        <label for="id_penyewa" class="form-label">Penyewa</label>
-                                        <select class="form-select" id="id_penyewa" name="id_penyewa" required>
-                                            <option value="" selected disabled>Pilih Penyewa</option>
-                                            <?php foreach ($daftar_penyewa as $penyewa): ?>
-                                                <option value="<?php echo $penyewa['id_penyewa']; ?>">
-                                                    <?php echo htmlspecialchars($penyewa['nama'] . ' (' . $penyewa['username'] . ')'); ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                        <div class="invalid-feedback">Silakan pilih penyewa</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="tanggal_sewa" class="form-label">Tanggal Sewa</label>
-                                        <div class="position-relative">
-                                            <input type="date" class="form-control" id="tanggal_sewa" name="tanggal_sewa" required>
-                                            <i class="fas fa-calendar-alt date-picker-icon"></i>
-                                        </div>
-                                        <div class="invalid-feedback">Tanggal sewa harus diisi</div>
-                                    </div>
-                                    
-                                    <div class="col-md-6 mb-3">
-                                        <label for="tanggal_kembali" class="form-label">Tanggal Kembali</label>
-                                        <div class="position-relative">
-                                            <input type="date" class="form-control" id="tanggal_kembali" name="tanggal_kembali" required>
-                                            <i class="fas fa-calendar-alt date-picker-icon"></i>
-                                        </div>
-                                        <div class="invalid-feedback">Tanggal kembali harus diisi</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="jumlah" class="form-label">Jumlah Hari</label>
-                                        <input type="number" class="form-control" id="jumlah" name="jumlah" min="1" required>
-                                        <div class="invalid-feedback">Jumlah hari harus diisi (minimal 1)</div>
-                                    </div>
-                                    
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Harga Sewa per Hari</label>
-                                        <div class="price-display" id="harga-per-hari">Rp 0</div>
-                                        <input type="hidden" id="harga_sewa" name="harga_sewa">
-                                    </div>
-                                </div>
-                                
+                            <form id="transaksiForm" action="/controllers/TransaksiController.php?action=create" method="POST" enctype="multipart/form-data" novalidate>
                                 <div class="mb-3">
-                                    <label class="form-label">Total Bayar</label>
-                                    <div class="price-display" id="total-bayar">Rp 0</div>
-                                    <input type="hidden" id="totalBayar" name="totalBayar">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="status" class="form-label">Status Transaksi</label>
-                                    <select class="form-select" id="status" name="status" required>
-                                        <option value="0" selected>Pending</option>
-                                        <option value="1">Sukses</option>
-                                        <option value="2">Gagal</option>
+                                    <label for="id_sewa" class="form-label">Sewa yang Dibayar</label>
+                                    <select class="form-select" id="id_sewa" name="id_sewa" required>
+                                        <option value="" selected disabled>Pilih Sewa</option>
+                                        <?php foreach ($daftar_sewa as $sewa): ?>
+                                            <option value="<?php echo $sewa['id_sewa']; ?>" data-total="<?php echo $sewa['totalBayar']; ?>">
+                                                <?php echo htmlspecialchars(
+                                                    '#' . $sewa['id_sewa'] . ' - ' . $sewa['nama_barang'] . 
+                                                    ' (Penyewa: ' . $sewa['nama_penyewa'] . ') - ' .
+                                                    'Rp ' . number_format($sewa['totalBayar'], 0, ',', '.')
+                                                ); ?>
+                                            </option>
+                                        <?php endforeach; ?>
                                     </select>
+                                    <div class="invalid-feedback">Silakan pilih sewa</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="bukti_pembayaran" class="form-label">Bukti Pembayaran</label>
+                                    <input type="file" class="form-control" id="bukti_pembayaran" name="bukti_pembayaran" accept="image/*" required>
+                                    <div class="invalid-feedback">Harap upload bukti pembayaran (format gambar)</div>
+                                    <img id="imagePreview" class="preview-image img-thumbnail" src="#" alt="Preview Bukti Pembayaran">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5>Rincian Pembayaran</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <p>Total Sewa: <span id="totalSewa">Rp 0</span></p>
+                                                    <p>Biaya Admin (12.5%): <span id="biayaAdmin">Rp 0</span></p>
+                                                </div>
+                                                <div class="col-md-6 text-end">
+                                                    <h4>Total Bayar: <span id="totalBayar">Rp 0</span></h4>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="d-flex justify-content-between align-items-center mt-4">
@@ -227,44 +181,53 @@
         document.querySelector('.mobile-search-box').classList.toggle('d-none');
     });
 
-    // Hitung total bayar
-    let hargaPerHari = 0;
-    
-    // Update harga ketika barang dipilih
-    document.getElementById('id_barang').addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        hargaPerHari = selectedOption.dataset.harga ? parseInt(selectedOption.dataset.harga) : 0;
-        
-        document.getElementById('harga-per-hari').textContent = 'Rp ' + hargaPerHari.toLocaleString('id-ID');
-        document.getElementById('harga_sewa').value = hargaPerHari;
-        
-        hitungTotalBayar();
-    });
-    
-    // Update total ketika jumlah hari berubah
-    document.getElementById('jumlah').addEventListener('input', hitungTotalBayar);
-    
-    function hitungTotalBayar() {
-        const jumlahHari = parseInt(document.getElementById('jumlah').value) || 0;
-        const totalBayar = hargaPerHari * jumlahHari;
-        
-        document.getElementById('total-bayar').textContent = 'Rp ' + totalBayar.toLocaleString('id-ID');
-        document.getElementById('totalBayar').value = totalBayar;
-    }
-    
-    // Validasi tanggal kembali tidak boleh sebelum tanggal sewa
-    document.getElementById('tanggal_kembali').addEventListener('change', function() {
-        const tanggalSewa = document.getElementById('tanggal_sewa').value;
-        const tanggalKembali = this.value;
-        
-        if (tanggalSewa && tanggalKembali && new Date(tanggalKembali) < new Date(tanggalSewa)) {
-            alert('Tanggal kembali tidak boleh sebelum tanggal sewa');
-            this.value = '';
+    // Image preview
+    document.getElementById('bukti_pembayaran').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const preview = document.getElementById('imagePreview');
+                preview.src = event.target.result;
+                preview.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
         }
     });
+
+    // Calculate and display payment details
+    const idSewa = document.getElementById('id_sewa');
+    const totalSewa = document.getElementById('totalSewa');
+    const biayaAdmin = document.getElementById('biayaAdmin');
+    const totalBayar = document.getElementById('totalBayar');
+    
+    function calculatePaymentDetails() {
+        const total = idSewa.selectedOptions[0]?.dataset.total || 0;
+        const adminFee = total * 0.125;
+        const totalPayment = parseInt(total) + parseInt(adminFee);
+        
+        totalSewa.textContent = 'Rp ' + parseInt(total).toLocaleString('id-ID');
+        biayaAdmin.textContent = 'Rp ' + parseInt(adminFee).toLocaleString('id-ID');
+        totalBayar.textContent = 'Rp ' + totalPayment.toLocaleString('id-ID');
+    }
+    
+    idSewa.addEventListener('change', calculatePaymentDetails);
     
     // Form validation
     document.getElementById('transaksiForm').addEventListener('submit', function(e) {
+        // Validate file type
+        const fileInput = document.getElementById('bukti_pembayaran');
+        if (fileInput.files.length > 0) {
+            const fileType = fileInput.files[0].type;
+            if (!fileType.match('image.*')) {
+                e.preventDefault();
+                fileInput.classList.add('is-invalid');
+                this.classList.add('was-validated');
+                return false;
+            }
+        }
+        
+        // Validate other fields
         if (!this.checkValidity()) {
             e.preventDefault();
             this.classList.add('was-validated');
@@ -275,11 +238,14 @@
     });
 
     // Validate fields on blur
-    document.getElementById('id_barang').addEventListener('blur', validateField);
-    document.getElementById('id_penyewa').addEventListener('blur', validateField);
-    document.getElementById('tanggal_sewa').addEventListener('blur', validateField);
-    document.getElementById('tanggal_kembali').addEventListener('blur', validateField);
-    document.getElementById('jumlah').addEventListener('blur', validateField);
+    document.getElementById('id_sewa').addEventListener('blur', validateField);
+    document.getElementById('bukti_pembayaran').addEventListener('change', function() {
+        if (this.files.length === 0) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+        }
+    });
 
     function validateField(e) {
         const field = e.target;
@@ -290,10 +256,8 @@
         }
     }
     
-    // Set tanggal minimal ke hari ini
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('tanggal_sewa').min = today;
-    document.getElementById('tanggal_kembali').min = today;
-</script>
+    // Initialize display
+    calculatePaymentDetails();
+    </script>
 </body>
 </html>

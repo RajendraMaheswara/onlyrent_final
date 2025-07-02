@@ -4,7 +4,13 @@ require_once './config/connect_db.php';
 
 // Redirect if already logged in
 if (isset($_SESSION['user'])) {
-    header("Location: login.php");
+    // Redirect based on role
+    switch ($_SESSION['user']['role']) {
+        case 1: header("Location: views/admin/index.php"); break;
+        case 2: header("Location: views/penyewa/index.php"); break;
+        case 3: header("Location: views/pemilik/index.php"); break;
+        default: header("Location: login.php"); break;
+    }
     exit();
 }
 
@@ -13,6 +19,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     include_once 'controllers/LoginController.php';
     $controller = new LoginController(getDBConnection());
     $error = $controller->login();
+    
+    // If no error, the controller already redirected
+    if (empty($error)) {
+        exit();
+    }
 }
 ?>
 
@@ -55,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="error-message"><?= htmlspecialchars($error) ?></div>
       <?php endif; ?>
 
-      <form method="POST">
+      <form method="POST" action="login.php">
         <div class="form-group">
           <label class="form-label" data-i18n="login.username">Username</label>
           <input type="text" class="form-control" name="username" required>
@@ -66,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <input type="password" class="form-control" name="password" required>
         </div>
 
-        <button type="submit" class="btn btn-primary" data-i18n="login.button">Login</button>
+        <button type="submit" class="btn btn-primary" name="login" data-i18n="login.button">Login</button>
         
         <div style="margin-top: 1.5rem; text-align: center;">
           <p style="color: var(--text-light);" data-i18n="login.no_account">Don't have an account?</p>
@@ -77,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
   <script>
-const translations = {
+    const translations = {
       en: {
         "app.title": "OnlyRent",
         "login.username": "Username",
@@ -112,7 +123,7 @@ const translations = {
       }
     };
 
-    // Theme Toggle (same as index.php)
+    // Theme Toggle
     const themeToggle = document.getElementById("theme-toggle");
     const currentTheme = localStorage.getItem("theme") || "light";
 
@@ -135,7 +146,7 @@ const translations = {
       themeToggle.title = theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode";
     }
 
-    // Language Switcher (same as index.php)
+    // Language Switcher
     const languageDropdown = document.getElementById("language-dropdown");
     const currentLanguage = localStorage.getItem("language") || "en";
 

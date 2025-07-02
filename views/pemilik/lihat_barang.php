@@ -1,13 +1,13 @@
 <?php
     session_start();
-    if (!isset($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
-        header("Location: ../../login.php");
+    if (!isset($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+        header("Location: ../login.php");
         exit();
     }
 
     // Include koneksi database dan model
     require_once '../../config/connect_db.php';
-    require_once '../../models/Barang.php';
+    require_once '../../models/pemilik/Barang.php';
     require_once '../../models/PemilikBarang.php';
 
     // Ambil data barang yang akan dilihat
@@ -111,33 +111,25 @@
                         </div>
                         <div class="card-body">
                             <!-- Tampilkan detail barang -->
-                             <div class="row mb-3">
+                             <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-floating mb-3">
+                                        <input type="text" class="form-control" id="nama_barang" name="nama_barang" value="<?php echo htmlspecialchars($barang['nama_barang']); ?>" disabled>
+                                        <label for="nama_barang">Nama Barang</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="pemilik" name="pemilik" 
-                                            value="<?php echo htmlspecialchars($nama_pemilik); ?>" disabled>
-                                        <label for="pemilik">Pemilik Barang</label>
+                                        <input type="text" class="form-control" id="harga_sewa" name="harga_sewa" value="<?php echo 'Rp ' . number_format($barang['harga_sewa'], 0, ',', '.'); ?>" disabled>
+                                        <label for="harga_sewa">Harga Sewa (per hari)</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <input type="text" class="form-control" id="status" name="status" value="<?php echo $barang['status'] == 1 ? 'Tersedia' : 'Tidak Tersedia'; ?>" disabled>
                                         <label for="status">Status</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control" id="nama_barang" name="nama_barang" value="<?php echo htmlspecialchars($barang['nama_barang']); ?>" disabled>
-                                        <label for="nama_barang">Nama Barang</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control" id="harga_sewa" name="harga_sewa" value="<?php echo 'Rp ' . number_format($barang['harga_sewa'], 0, ',', '.'); ?>" disabled>
-                                        <label for="harga_sewa">Harga Sewa (per hari)</label>
                                     </div>
                                 </div>
                             </div>

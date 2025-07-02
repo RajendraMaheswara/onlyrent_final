@@ -1,4 +1,5 @@
 <?php
+session_start();
 include_once 'config/connect_db.php';
 include_once 'models/Login.php';
 
@@ -9,44 +10,55 @@ class LoginController {
         $this->model = new Login($db);
     }
 
-    // Process login
     public function login() {
         $error = '';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Get form data
             $username = trim($_POST['username']);
             $password = $_POST['password'];
             
-            // Validate input
             if (empty($username) || empty($password)) {
-                $error = "Username and password are required.";
+                $error = "Username dan password harus diisi";
             } else {
-                // Authenticate user
                 $user = $this->model->authenticate($username, $password);
                 
                 if ($user) {
                     // Set session data
                     $_SESSION['user'] = [
-                        'id' => $user['id_pengguna'],
+                        'id_pengguna' => $user['id_pengguna'],
                         'username' => $user['username'],
                         'email' => $user['email'],
                         'role' => $user['role']
                     ];
 
-                    // Redirect based on role
-                    if ($user['role'] === 1) {
-                        header("Location: views/admin/index.php");
-                    } elseif ($user['role'] === 2) {
-                        header("Location: views/penyewa/index.php");
-                    } elseif ($user['role'] === 3) {
-                        header("Location: views/pemilik/index.php");
-                    } else {
-                        header("Location: login.php");
+                    // Add role-specific data to session
+                    switch ($user['role']) {
+                        case 1: // Admin
+                            $_SESSION['user']['is_admin'] = true;
+                            $redirect = 'views/admin/index.php';
+                            break;
+                            
+                        case 2: // Penyewa
+                            $_SESSION['user']['id_penyewa'] = $user['id_penyewa'];
+                            $redirect = 'views/penyewa/index.php';
+                            break;
+                            
+                        case 3: // Pemilik
+                            $_SESSION['user']['id_pemilik'] = $user['id_pemilik'];
+                            $redirect = 'views/pemilik/index.php';
+                            break;
+                            
+                        default:
+                            $error = "Role tidak valid";
+                            break;
                     }
-                    exit();
+
+                    if (empty($error)) {
+                        header("Location: ../$redirect");
+                        exit();
+                    }
                 } else {
-                    $error = "Invalid username or password.";
+                    $error = "Username atau password salah";
                 }
             }
         }
@@ -54,4 +66,16 @@ class LoginController {
         return $error;
     }
 }
-?>
+
+// Handle login request
+$db = getDBConnection();
+$controller = new LoginController($db);
+
+if (isset($_POST['login'])) {
+    $error = $controller->login();
+    if ($error) {
+        $_SESSION['error'] = $error;
+        header("Location: ../login.php");
+        exit();
+    }
+}

@@ -1,7 +1,7 @@
 <?php
     session_start();
     if (!isset($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
-        header("Location: ../login.php");
+        header("Location: ../../login.php");
         exit();
     }
 
@@ -12,12 +12,13 @@
     require_once '../../config/connect_db.php';
     $conn = getDBConnection();
 
-    // Inisialisasi variabel
+    // Inisialisasi variabel $transaksi dengan array kosong
     $transaksi = [];
     $total_transaksi = 0;
-    $success_count = 0;
     $pending_count = 0;
+    $success_count = 0;
     $failed_count = 0;
+    $total_pendapatan = 0;
 
     // Hitung total transaksi
     $total_query = "SELECT COUNT(*) as total FROM transaksi";
@@ -28,17 +29,18 @@
         $total_transaksi = $total_row['total'];
     }
 
-    // Hitung status transaksi
-    $status_query = "SELECT status, COUNT(*) as count FROM transaksi GROUP BY status";
+    // Hitung status transaksi dan total pendapatan
+    $status_query = "SELECT status, COUNT(*) as count, SUM(totalBayar) as total FROM transaksi GROUP BY status";
     $status_result = $conn->query($status_query);
 
     if ($status_result) {
         while ($row = $status_result->fetch_assoc()) {
-            if ($row['status'] == 1) {
-                $success_count = $row['count'];
-            } elseif ($row['status'] == 0) {
+            if ($row['status'] == 0) {
                 $pending_count = $row['count'];
-            } else {
+            } elseif ($row['status'] == 1) {
+                $success_count = $row['count'];
+                $total_pendapatan += $row['total'];
+            } elseif ($row['status'] == 2) {
                 $failed_count = $row['count'];
             }
         }
@@ -51,8 +53,14 @@
     $offset = ($current_page - 1) * $per_page;
 
     // Query dengan pagination
-    $query = "SELECT t.*, s.id_barang, s.id_penyewa, b.nama_barang, p.nama as nama_penyewa, 
-              pb.nama as nama_pemilik, b.harga_sewa
+    $query = "SELECT t.*, 
+                     s.id_barang, 
+                     s.id_penyewa,
+                     s.tanggalSewa,
+                     s.tanggalKembali,
+                     b.nama_barang, 
+                     p.nama as nama_penyewa,
+                     pb.nama as nama_pemilik
               FROM transaksi t
               JOIN sewa s ON t.id_sewa = s.id_sewa
               JOIN barang b ON s.id_barang = b.id_barang
@@ -63,8 +71,18 @@
     $result = $conn->query($query);
 
     if ($result && $result->num_rows > 0) {
-        // Ambil data transaksi
         while ($row = $result->fetch_assoc()) {
+            // Decode JSON gambar dan ambil gambar pertama
+            $images = json_decode($row['gambar']);
+            $firstImage = '';
+            
+            if (json_last_error() === JSON_ERROR_NONE && is_array($images) && count($images) > 0) {
+                $firstImage = $images[0];
+            } elseif (!empty($row['gambar'])) {
+                $firstImage = $row['gambar'];
+            }
+            
+            $row['first_image'] = $firstImage;
             $transaksi[] = $row;
         }
     }
@@ -117,24 +135,11 @@
                     <div class="card stats-card">
                         <div class="card-body d-flex align-items-center">
                             <div class="stats-icon stats-total me-3">
-                                <i class="fas fa-exchange-alt"></i>
+                                <i class="fas fa-clipboard-list"></i>
                             </div>
                             <div>
                                 <h5 class="mb-0"><?php echo $total_transaksi; ?></h5>
                                 <small class="text-muted">Total Transaksi</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card stats-card">
-                        <div class="card-body d-flex align-items-center">
-                            <div class="stats-icon stats-success me-3">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <div>
-                                <h5 class="mb-0"><?php echo $success_count; ?></h5>
-                                <small class="text-muted">Berhasil</small>
                             </div>
                         </div>
                     </div>
@@ -147,7 +152,7 @@
                             </div>
                             <div>
                                 <h5 class="mb-0"><?php echo $pending_count; ?></h5>
-                                <small class="text-muted">Pending</small>
+                                <small class="text-muted">Belum Dibayar</small>
                             </div>
                         </div>
                     </div>
@@ -155,12 +160,42 @@
                 <div class="col-md-3">
                     <div class="card stats-card">
                         <div class="card-body d-flex align-items-center">
-                            <div class="stats-icon stats-failed me-3">
+                            <div class="stats-icon stats-active me-3">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0"><?php echo $success_count; ?></h5>
+                                <small class="text-muted">Proses Auth</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stats-card">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stats-icon stats-completed me-3">
                                 <i class="fas fa-times-circle"></i>
                             </div>
                             <div>
                                 <h5 class="mb-0"><?php echo $failed_count; ?></h5>
-                                <small class="text-muted">Gagal</small>
+                                <small class="text-muted">Berhasil</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pendapatan Card -->
+            <div class="row mb-4 animate-fade-in">
+                <div class="col-12">
+                    <div class="card stats-card bg-primary text-white">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stats-icon me-3">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0">Rp <?php echo number_format($total_pendapatan, 0, ',', '.'); ?></h5>
+                                <small>Total Pendapatan</small>
                             </div>
                         </div>
                     </div>
@@ -173,25 +208,19 @@
                     <div class="card table-card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h4>
-                                <i class="fas fa-exchange-alt"></i>
+                                <i class="fas fa-money-bill-wave"></i>
                                 Daftar Transaksi
                             </h4>
-                            <div>
-                                <button class="btn btn-primary me-2" onclick="printReport()">
-                                    <i class="fas fa-print me-2"></i>
-                                    Cetak Laporan
-                                </button>
-                                <button class="btn btn-success" onclick="exportToExcel()">
-                                    <i class="fas fa-file-excel me-2"></i>
-                                    Export Excel
-                                </button>
-                            </div>
+                            <a href="tambah_transaksi.php" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>
+                                Tambah Transaksi
+                            </a>
                         </div>
                         <div class="card-body">
                             <!-- Search Box -->
                             <div class="search-box">
                                 <i class="fas fa-search"></i>
-                                <input type="text" class="form-control" id="searchInput" placeholder="Cari transaksi berdasarkan ID, barang, atau penyewa...">
+                                <input type="text" class="form-control" id="searchInput" placeholder="Cari transaksi berdasarkan nama penyewa, barang, atau status...">
                             </div>
 
                             <!-- Table -->
@@ -200,12 +229,10 @@
                                     <thead>
                                         <tr>
                                             <th>ID</th>
-                                            <th>Tanggal</th>
+                                            <th>Bukti Pembayaran</th>
                                             <th>Barang</th>
                                             <th>Penyewa</th>
-                                            <th>Pemilik</th>
-                                            <th>Harga Sewa</th>
-                                            <th>Jumlah</th>
+                                            <th>Tanggal Transaksi</th>
                                             <th>Total Bayar</th>
                                             <th>Status</th>
                                             <th>Aksi</th>
@@ -215,36 +242,48 @@
                                         <?php foreach ($transaksi as $item): ?>
                                         <tr>
                                             <td><strong>#<?php echo $item['id_transaksi']; ?></strong></td>
-                                            <td><?php echo date('d M Y H:i', strtotime($item['tanggal'])); ?></td>
                                             <td>
-                                                <strong><?php echo htmlspecialchars($item['nama_barang']); ?></strong>
+                                                <?php if (!empty($item['first_image'])): ?>
+                                                    <img src="/assets/images/transaksi/<?php echo htmlspecialchars($item['first_image']); ?>?v=<?php echo time(); ?>" 
+                                                        alt="Bukti Pembayaran" 
+                                                        class="img-thumbnail"
+                                                        style="width: 60px; height: 40px; object-fit: cover; cursor: pointer;"
+                                                        onclick="viewImage('/assets/images/transaksi/<?php echo htmlspecialchars($item['first_image']); ?>')">
+                                                <?php else: ?>
+                                                    <div class="no-image d-flex align-items-center justify-content-center" 
+                                                        style="width: 60px; height: 40px; background: #f0f0f0; border-radius: 4px;">
+                                                        <i class="fas fa-image text-muted"></i>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <strong><?php echo htmlspecialchars($item['nama_barang']); ?></strong><br>
+                                                    <small class="text-muted">
+                                                        Sewa: <?php echo date('d M Y', strtotime($item['tanggalSewa'])); ?> - 
+                                                        <?php echo date('d M Y', strtotime($item['tanggalKembali'])); ?>
+                                                    </small>
+                                                </div>
                                             </td>
                                             <td><?php echo htmlspecialchars($item['nama_penyewa']); ?></td>
-                                            <td><?php echo htmlspecialchars($item['nama_pemilik']); ?></td>
-                                            <td>Rp <?php echo number_format($item['harga_sewa'], 0, ',', '.'); ?></td>
-                                            <td><?php echo $item['jumlah']; ?> hari</td>
+                                            <td><?php echo date('d M Y H:i', strtotime($item['tanggal'])); ?></td>
                                             <td>Rp <?php echo number_format($item['totalBayar'], 0, ',', '.'); ?></td>
                                             <td>
-                                                <?php if ($item['status'] == 1): ?>
-                                                    <span class="badge bg-success">Berhasil</span>
-                                                <?php elseif ($item['status'] == 0): ?>
-                                                    <span class="badge bg-warning text-dark">Pending</span>
+                                                <?php if ($item['status'] == 0): ?>
+                                                    <span class="badge bg-warning">Pending</span>
+                                                <?php elseif ($item['status'] == 1): ?>
+                                                    <span class="badge bg-success">Sukses</span>
                                                 <?php else: ?>
                                                     <span class="badge bg-danger">Gagal</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
-                                                <button class="btn btn-action btn-view" title="Lihat Detail" onclick="viewTransaksi(<?php echo $item['id_transaksi']; ?>)">
-                                                    <i class="fas fa-eye"></i>
+                                                <a href="edit_transaksi.php?id=<?php echo $item['id_transaksi']; ?>" class="btn btn-action btn-edit" title="Edit Transaksi">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button class="btn btn-action btn-status" title="Ubah Status" onclick="changeStatus(<?php echo $item['id_transaksi']; ?>, <?php echo $item['status']; ?>)">
+                                                    <i class="fas fa-sync-alt"></i>
                                                 </button>
-                                                <?php if ($item['status'] == 0): ?>
-                                                    <button class="btn btn-action btn-success" title="Setujui" onclick="updateStatus(<?php echo $item['id_transaksi']; ?>, 1)">
-                                                        <i class="fas fa-check"></i>
-                                                    </button>
-                                                    <button class="btn btn-action btn-danger" title="Tolak" onclick="updateStatus(<?php echo $item['id_transaksi']; ?>, 2)">
-                                                        <i class="fas fa-times"></i>
-                                                    </button>
-                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>
@@ -317,32 +356,74 @@
         </div>
     </div>
 
+    <!-- Status Change Modal -->
+    <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="statusModalLabel">Ubah Status Transaksi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Pilih status baru untuk transaksi ini:</p>
+                    <select class="form-select" id="newStatus">
+                        <option value="0">Pending</option>
+                        <option value="1">Sukses</option>
+                        <option value="2">Gagal</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" id="confirmStatusBtn">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image View Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Bukti Pembayaran</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="modalImage" src="" class="img-fluid" alt="Bukti Pembayaran">
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     <script>
-    // Fungsi untuk menampilkan detail transaksi
-    function viewTransaksi(transaksiId) {
-        window.location.href = "lihat_transaksi.php?id=" + transaksiId;
+    
+    // Fungsi untuk menampilkan gambar besar
+    function viewImage(imageUrl) {
+        document.getElementById('modalImage').src = imageUrl;
+        const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+        imageModal.show();
     }
     
-    // Fungsi untuk memperbarui status transaksi
-    function updateStatus(transaksiId, status) {
-        if (confirm("Apakah Anda yakin ingin mengubah status transaksi ini?")) {
-            window.location.href = "/controllers/TransaksiController.php?action=update_status&id=" + transaksiId + "&status=" + status;
-        }
-    }
-    
-    // Fungsi untuk mencetak laporan
-    function printReport() {
-        window.open("cetak_laporan_transaksi.php", "_blank");
-    }
-    
-    // Fungsi untuk export ke Excel
-    function exportToExcel() {
-        window.location.href = "export_transaksi_excel.php";
+    // Fungsi untuk mengubah status transaksi
+    function changeStatus(transaksiId, currentStatus) {
+        const statusModal = new bootstrap.Modal(document.getElementById('statusModal'));
+        const confirmStatusBtn = document.getElementById('confirmStatusBtn');
+        
+        // Set current status in dropdown
+        document.getElementById('newStatus').value = currentStatus;
+        
+        // Update button click handler
+        confirmStatusBtn.onclick = function() {
+            const newStatus = document.getElementById('newStatus').value;
+            window.location.href = '/controllers/TransaksiController.php?action=update_status&id=' + transaksiId + '&status=' + newStatus;
+        };
+        
+        statusModal.show();
     }
 
     // Inisialisasi DataTable
