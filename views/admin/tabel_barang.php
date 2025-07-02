@@ -89,6 +89,7 @@
     <link rel="stylesheet" href="../../assets/css/admin/index.css">
 </head>
 <body>
+    <div class="mobile-overlay"></div>
     <!-- Sidebar -->
     <?php include('nav.php'); ?>
 
@@ -118,7 +119,7 @@
 
             <!-- Statistics Cards -->
             <div class="row mb-4 animate-fade-in">
-                <div class="col-md-4">
+                <div class="col-xl-3 col-md-6 mb-4">
                     <div class="card stats-card">
                         <div class="card-body d-flex align-items-center">
                             <div class="stats-icon stats-total me-3">
@@ -131,7 +132,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-xl-3 col-md-6 mb-4">
                     <div class="card stats-card">
                         <div class="card-body d-flex align-items-center">
                             <div class="stats-icon stats-active me-3">
@@ -139,12 +140,12 @@
                             </div>
                             <div>
                                 <h5 class="mb-0"><?php echo $active_count; ?></h5>
-                                <small class="text-muted">Aktif</small>
+                                <small class="text-muted">Tersedia</small>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-xl-3 col-md-6 mb-4">
                     <div class="card stats-card">
                         <div class="card-body d-flex align-items-center">
                             <div class="stats-icon stats-inactive me-3">
@@ -152,7 +153,7 @@
                             </div>
                             <div>
                                 <h5 class="mb-0"><?php echo $inactive_count; ?></h5>
-                                <small class="text-muted">Non-Aktif</small>
+                                <small class="text-muted">Tidak Tersedia</small>
                             </div>
                         </div>
                     </div>
@@ -334,6 +335,7 @@
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="../../assets/js/index.js"></script>
 
     <script>
     // Fungsi untuk menampilkan detail barang

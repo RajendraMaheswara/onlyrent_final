@@ -144,7 +144,7 @@ $username = $_SESSION['user']['username'];
                                 </div>
 
                                 <div class="d-flex justify-content-between align-items-center mt-4">
-                                    <a href="daftar_barang.php" class="btn btn-secondary">
+                                    <a href="tabel_barang.php" class="btn btn-secondary">
                                         <i class="fas fa-arrow-left me-2"></i>
                                         Kembali
                                     </a>

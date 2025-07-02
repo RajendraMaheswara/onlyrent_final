@@ -7,7 +7,7 @@
 
     // Include koneksi database dan model
     require_once '../../config/connect_db.php';
-    require_once '../../models/pemilik/Barang.php';
+    require_once '../../models/Barang.php';
     require_once '../../models/PemilikBarang.php';
 
     // Ambil data barang yang akan dilihat

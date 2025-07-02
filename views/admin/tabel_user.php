@@ -75,6 +75,7 @@
 </head>
 <body>
     <!-- Sidebar -->
+    <div class="mobile-overlay"></div>
     <?php include('nav.php'); ?>
 
     <!-- Main Content -->
@@ -103,7 +104,7 @@
 
             <!-- Statistics Cards -->
             <div class="row mb-4 animate-fade-in">
-                <div class="col-md-3">
+                <div class="col-xl-3 col-md-6 mb-4">
                     <div class="card stats-card">
                         <div class="card-body d-flex align-items-center">
                             <div class="stats-icon stats-total me-3">
@@ -116,7 +117,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-xl-3 col-md-6 mb-4">
                     <div class="card stats-card">
                         <div class="card-body d-flex align-items-center">
                             <div class="stats-icon stats-admin me-3">
@@ -129,7 +130,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-xl-3 col-md-6 mb-4">
                     <div class="card stats-card">
                         <div class="card-body d-flex align-items-center">
                             <div class="stats-icon stats-user me-3">
@@ -142,7 +143,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-xl-3 col-md-6 mb-4">
                     <div class="card stats-card">
                         <div class="card-body d-flex align-items-center">
                             <div class="stats-icon stats-owner me-3">
@@ -362,6 +363,7 @@
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="../../assets/js/index.js"></script>
 
     <script>
     // Fungsi untuk mengarahkan ke halaman Edit User berdasarkan ID

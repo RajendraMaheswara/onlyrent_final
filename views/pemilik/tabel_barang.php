@@ -360,7 +360,7 @@
         // Menambahkan event listener baru
         newConfirmBtn.onclick = function() {
             // Redirect ke controller untuk proses hapus
-            window.location.href = '/controllers/pemilik/BarangController.php?action=delete&id=' + barangId;
+            window.location.href = '/controllers/BarangController.php?action=deletePemilik&id=' + barangId;
         };
 
         // Menampilkan modal konfirmasi
@@ -371,7 +371,7 @@
     // Fungsi untuk mengubah status barang
     function toggleStatus(barangId, currentStatus) {
         const newStatus = currentStatus == 1 ? 0 : 1;
-        window.location.href = '/controllers/pemilik/BarangController.php?action=update_status&id=' + barangId + '&status=' + newStatus;
+        window.location.href = '/controllers/BarangController.php?action=update_status&id=' + barangId + '&status=' + newStatus;
     }
 
     // Inisialisasi DataTable
