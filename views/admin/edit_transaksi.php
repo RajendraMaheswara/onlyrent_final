@@ -6,11 +6,11 @@
     }
 
     require_once '../../config/connect_db.php';
-    require_once '../../models/Transaksi.php';
-    require_once '../../models/Sewa.php';
-    require_once '../../models/Penyewa.php';
-    require_once '../../models/PemilikBarang.php';
-    require_once '../../models/Barang.php';
+    require_once '../../models/admin/Transaksi.php';
+    require_once '../../models/admin/Sewa.php';
+    require_once '../../models/admin/.php';
+    require_once '../../models/admin/PemilikBarang.php';
+    require_once '../../models/admin/Barang.php';
 
     if (!isset($_GET['id'])) {
         $_SESSION['error'] = "ID Transaksi tidak valid";
@@ -103,7 +103,7 @@
                             </h4>
                         </div>
                         <div class="card-body">
-                            <form id="transaksiForm" action="/controllers/TransaksiController.php?action=update" method="POST">
+                            <form id="transaksiForm" action="/controllers/admin/TransaksiController.php?action=update" method="POST">
                                 <input type="hidden" name="id_transaksi" value="<?php echo htmlspecialchars($transaksi['id_transaksi']); ?>">
 
                                 <div class="row mb-3">

@@ -56,7 +56,7 @@
                             </h4>
                         </div>
                         <div class="card-body">
-                            <form id="userForm" action="/controllers/PenggunaController.php?action=create" method="POST">
+                            <form id="userForm" action="/controllers/admin/PenggunaController.php?action=create" method="POST">
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-floating mb-3">

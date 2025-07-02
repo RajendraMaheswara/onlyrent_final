@@ -1,6 +1,6 @@
 <?php
-include_once '../config/connect_db.php';
-include_once '../models/Barang.php';
+include_once '../../config/connect_db.php';
+include_once '../../models/admin/Barang.php';
 
 function sanitizeFileName($name) {
     $name = preg_replace('/[^a-zA-Z0-9]/', '-', $name);
@@ -75,12 +75,12 @@ class BarangController {
                 $id_barang = $this->model->create($id_pemilik, $nama_barang, $gambarJson, $deskripsi, $harga_sewa);
 
                 $_SESSION['success'] = "Barang berhasil ditambahkan!";
-                header("Location: ../views/admin/tabel_barang.php");
+                header("Location: ../../views/admin/tabel_barang.php");
                 exit();
             } catch (Exception $e) {
                 error_log("Error: " . $e->getMessage());
                 $_SESSION['error'] = $e->getMessage();
-                header("Location: ../views/admin/tabel_barang.php");
+                header("Location: ../../views/admin/tabel_barang.php");
                 exit();
             }
         }
@@ -167,12 +167,12 @@ class BarangController {
                 $this->model->update($id_barang, $nama_barang, $gambarJson, $deskripsi, $harga_sewa);
 
                 $_SESSION['success'] = "Barang berhasil diperbarui!";
-                header("Location: ../views/admin/tabel_barang.php");
+                header("Location: ../../views/admin/tabel_barang.php");
                 exit();
             } catch (Exception $e) {
                 error_log("Error: " . $e->getMessage());
                 $_SESSION['error'] = $e->getMessage();
-                header("Location: ../views/admin/edit_barang.php?id=" . $_POST['id_barang']);
+                header("Location: ../../views/admin/edit_barang.php?id=" . $_POST['id_barang']);
                 exit();
             }
         }
@@ -197,7 +197,7 @@ class BarangController {
             $_SESSION['error'] = $e->getMessage();
         }
         
-        header("Location: ../views/admin/tabel_barang.php");
+        header("Location: ../../views/admin/tabel_barang.php");
         exit();
     }
 
@@ -235,7 +235,7 @@ class BarangController {
             $_SESSION['error'] = $e->getMessage();
         }
         
-        header("Location: ../views/admin/tabel_barang.php");
+        header("Location: ../../views/admin/tabel_barang.php");
         exit();
     }
 }

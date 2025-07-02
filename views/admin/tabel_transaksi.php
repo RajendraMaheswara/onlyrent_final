@@ -422,7 +422,7 @@
         // Update button click handler
         confirmStatusBtn.onclick = function() {
             const newStatus = document.getElementById('newStatus').value;
-            window.location.href = '/controllers/TransaksiController.php?action=update_status&id=' + transaksiId + '&status=' + newStatus;
+            window.location.href = '/controllers/admin/TransaksiController.php?action=update_status&id=' + transaksiId + '&status=' + newStatus;
         };
         
         statusModal.show();

@@ -299,7 +299,7 @@
         // Menambahkan event listener baru
         newConfirmBtn.onclick = function() {
             // Redirect ke controller untuk proses hapus
-            window.location.href = '/controllers/PemilikBarangController.php?action=delete&id=' + pemilikId;
+            window.location.href = '/controllers/admin/PemilikBarangController.php?action=delete&id=' + pemilikId;
         };
 
         // Menampilkan modal konfirmasi

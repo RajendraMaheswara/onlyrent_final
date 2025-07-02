@@ -1,6 +1,6 @@
 <?php
-include_once '../config/connect_db.php';
-include_once '../models/Pengguna.php';
+include_once '../../config/connect_db.php';
+include_once '../../models/admin/Pengguna.php';
 
 class PenggunaController {
     private $model;
@@ -45,7 +45,7 @@ class PenggunaController {
 
                 if ($result) {
                     $_SESSION['success'] = "User berhasil ditambahkan!";
-                    header("Location: ../views/admin/tabel_user.php");
+                    header("Location: ../../views/admin/tabel_user.php");
                     exit();
                 } else {
                     throw new Exception("Gagal menambahkan user");
@@ -53,7 +53,7 @@ class PenggunaController {
             } catch (Exception $e) {
                 error_log("Error: " . $e->getMessage()); 
                 $_SESSION['error'] = $e->getMessage();
-                header("Location: ../views/admin/tambah_user.php"); // Redirect kembali ke form tambah
+                header("Location: ../../views/admin/tambah_user.php"); // Redirect kembali ke form tambah
                 exit();
             }
         }
@@ -112,7 +112,7 @@ class PenggunaController {
             } catch (Exception $e) {
                 error_log("Error: " . $e->getMessage()); 
                 $_SESSION['error'] = $e->getMessage();
-                header("Location: ../views/admin/edit_user.php?id=" . $_POST['user_id']);
+                header("Location: ../../views/admin/edit_user.php?id=" . $_POST['user_id']);
                 exit();
             }
         }
@@ -139,7 +139,7 @@ class PenggunaController {
             $_SESSION['error'] = $e->getMessage();
         }
         
-        header("Location: ../views/admin/tabel_user.php");
+        header("Location: ../../views/admin/tabel_user.php");
         exit();
     }
 }

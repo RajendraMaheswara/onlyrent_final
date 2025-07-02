@@ -7,7 +7,7 @@
 
     // Include koneksi database dan model
     require_once '../../config/connect_db.php';
-    require_once '../../models/Pengguna.php';
+    require_once '../../models/admin/Pengguna.php';
 
     // Ambil data user yang akan diedit
     if (!isset($_GET['id'])) {
@@ -67,7 +67,7 @@
                             </h4>
                         </div>
                         <div class="card-body">
-                            <form id="userForm" action="/controllers/PenggunaController.php?action=edit" method="POST">
+                            <form id="userForm" action="/controllers/admin/PenggunaController.php?action=edit" method="POST">
                                 <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($user_data['id_pengguna']); ?>">
 
                                 <div class="row">

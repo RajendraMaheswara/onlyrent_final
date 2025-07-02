@@ -104,7 +104,7 @@
                             </h4>
                         </div>
                         <div class="card-body">
-                            <form id="sewaForm" action="/controllers/SewaController.php?action=create" method="POST" novalidate>
+                            <form id="sewaForm" action="/controllers/admin/SewaController.php?action=create" method="POST" novalidate>
                                 <div class="mb-3">
                                     <label for="id_barang" class="form-label">Barang yang Disewa</label>
                                     <select class="form-select" id="id_barang" name="id_barang" required>

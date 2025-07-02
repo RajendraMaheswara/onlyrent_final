@@ -143,7 +143,7 @@
                             </h4>
                         </div>
                         <div class="card-body">
-                            <form id="barangForm" action="/controllers/BarangController.php?action=create" method="POST" enctype="multipart/form-data" novalidate>
+                            <form id="barangForm" action="/controllers/admin/BarangController.php?action=create" method="POST" enctype="multipart/form-data" novalidate>
                                 <input type="hidden" name="id_pemilik" value="<?php echo $id_pemilik; ?>">
                                 
                                 <div class="mb-3">

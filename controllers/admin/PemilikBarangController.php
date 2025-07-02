@@ -1,6 +1,6 @@
 <?php
-include_once '../config/connect_db.php';
-include_once '../models/PemilikBarang.php';
+include_once '../../config/connect_db.php';
+include_once '../../models/admin/PemilikBarang.php';
 
 class PemilikBarangController {
     private $model;
@@ -54,7 +54,7 @@ class PemilikBarangController {
 
                 if ($result) {
                     $_SESSION['success'] = "Pemilik baru berhasil ditambahkan!";
-                    header("Location: ../views/admin/tabel_pemilik.php");
+                    header("Location: ../../views/admin/tabel_pemilik.php");
                     exit();
                 } else {
                     throw new Exception("Gagal menambahkan pemilik baru");
@@ -62,7 +62,7 @@ class PemilikBarangController {
             } catch (Exception $e) {
                 error_log("Error: " . $e->getMessage()); 
                 $_SESSION['error'] = $e->getMessage();
-                header("Location: ../views/admin/tambah_pemilik.php");
+                header("Location: ../../views/admin/tambah_pemilik.php");
                 exit();
             }
         }
@@ -116,7 +116,7 @@ class PemilikBarangController {
 
                 if ($result) {
                     $_SESSION['success'] = "Data pemilik berhasil diperbarui!";
-                    header("Location: ../views/admin/tabel_pemilik.php");
+                    header("Location: ../../views/admin/tabel_pemilik.php");
                     exit();
                 } else {
                     throw new Exception("Gagal memperbarui data pemilik");
@@ -124,7 +124,7 @@ class PemilikBarangController {
             } catch (Exception $e) {
                 error_log("Error: " . $e->getMessage()); 
                 $_SESSION['error'] = $e->getMessage();
-                header("Location: ../views/admin/edit_pemilik.php?id=" . $_POST['id_pemilik']);
+                header("Location: ../../views/admin/edit_pemilik.php?id=" . $_POST['id_pemilik']);
                 exit();
             }
         }
@@ -149,7 +149,7 @@ class PemilikBarangController {
             $_SESSION['error'] = $e->getMessage();
         }
         
-        header("Location: ../views/admin/tabel_pemilik.php");
+        header("Location: ../../views/admin/tabel_pemilik.php");
         exit();
     }
 

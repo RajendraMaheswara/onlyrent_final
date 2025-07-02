@@ -7,9 +7,9 @@
 
     // Include koneksi database dan model
     require_once '../../config/connect_db.php';
-    require_once '../../models/Sewa.php';
-    require_once '../../models/Barang.php';
-    require_once '../../models/Penyewa.php';
+    require_once '../../models/admin/Sewa.php';
+    require_once '../../models/admin/Barang.php';
+    require_once '../../models/admin/Penyewa.php';
 
     // Ambil data sewa yang akan diedit
     if (!isset($_GET['id'])) {
@@ -111,7 +111,7 @@
                             </h4>
                         </div>
                         <div class="card-body">
-                            <form id="sewaForm" action="/controllers/SewaController.php?action=update" method="POST">
+                            <form id="sewaForm" action="/controllers/admin/SewaController.php?action=update" method="POST">
                                 <input type="hidden" name="id_sewa" value="<?php echo htmlspecialchars($sewa['id_sewa']); ?>">
 
                                 <div class="row mb-3">

@@ -7,7 +7,7 @@
 
     // Include koneksi database dan model
     require_once '../../config/connect_db.php';
-    require_once '../../models/Penyewa.php';
+    require_once '../../models/admin/Penyewa.php';
 
     // Ambil data penyewa yang akan diedit
     if (!isset($_GET['id'])) {
@@ -81,7 +81,7 @@
                             </h4>
                         </div>
                         <div class="card-body">
-                            <form id="penyewaForm" action="/controllers/PenyewaController.php?action=update" method="POST">
+                            <form id="penyewaForm" action="/controllers/admin/PenyewaController.php?action=update" method="POST">
                                 <input type="hidden" name="id_penyewa" value="<?php echo htmlspecialchars($penyewa_data['id_penyewa']); ?>">
 
                                 <h5 class="mb-3">Informasi Akun</h5>

@@ -100,7 +100,7 @@
                             </h4>
                         </div>
                         <div class="card-body">
-                            <form id="transaksiForm" action="/controllers/TransaksiController.php?action=create" method="POST" enctype="multipart/form-data" novalidate>
+                            <form id="transaksiForm" action="/controllers/admin/TransaksiController.php?action=create" method="POST" enctype="multipart/form-data" novalidate>
                                 <div class="mb-3">
                                     <label for="id_sewa" class="form-label">Sewa yang Dibayar</label>
                                     <select class="form-select" id="id_sewa" name="id_sewa" required>

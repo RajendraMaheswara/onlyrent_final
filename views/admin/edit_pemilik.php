@@ -7,7 +7,7 @@
 
     // Include koneksi database dan model
     require_once '../../config/connect_db.php';
-    require_once '../../models/PemilikBarang.php';
+    require_once '../../models/admin/PemilikBarang.php';
 
     // Ambil data pemilik yang akan diedit
     if (!isset($_GET['id'])) {
@@ -67,7 +67,7 @@
                             </h4>
                         </div>
                         <div class="card-body">
-                            <form id="pemilikForm" action="/controllers/PemilikBarangController.php?action=update" method="POST">
+                            <form id="pemilikForm" action="/controllers/admin/PemilikBarangController.php?action=update" method="POST">
                                 <input type="hidden" name="id_pemilik" value="<?php echo htmlspecialchars($pemilik_data['id_pemilik']); ?>">
 
                                 <div class="row">

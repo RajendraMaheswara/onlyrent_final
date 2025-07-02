@@ -7,7 +7,7 @@
 
     // Include database connection and models
     require_once '../../config/connect_db.php';
-    require_once '../../models/Penyewa.php';
+    require_once '../../models/admin/Penyewa.php';
 
     // Get penyewa data to view
     if (!isset($_GET['id'])) {

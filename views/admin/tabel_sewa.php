@@ -381,7 +381,7 @@
         // Update button click handler
         confirmStatusBtn.onclick = function() {
             const newStatus = document.getElementById('newStatus').value;
-            window.location.href = '/controllers/SewaController.php?action=update_status&id=' + sewaId + '&status=' + newStatus;
+            window.location.href = '/controllers/admin/SewaController.php?action=update_status&id=' + sewaId + '&status=' + newStatus;
         };
         
         statusModal.show();

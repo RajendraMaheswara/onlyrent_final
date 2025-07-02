@@ -7,7 +7,7 @@
 
     // Include koneksi database dan model
     require_once '../../config/connect_db.php';
-    require_once '../../models/PemilikBarang.php';
+    require_once '../../models/admin/PemilikBarang.php';
 
     // Ambil data pemilik yang akan dilihat
     if (!isset($_GET['id'])) {

@@ -1,11 +1,11 @@
 <?php
-include_once '../config/connect_db.php';
-include_once '../models/Transaksi.php';
-include_once '../models/Sewa.php';
-include_once '../models/Barang.php';
-include_once '../models/PemilikBarang.php';
-include_once '../models/Penyewa.php';
-include_once '../models/Pengguna.php';
+include_once '../../config/connect_db.php';
+include_once '../../models/admin/Transaksi.php';
+include_once '../../models/admin/Sewa.php';
+include_once '../../models/admin/Barang.php';
+include_once '../../models/admin/PemilikBarang.php';
+include_once '../../models/admin/Penyewa.php';
+include_once '../../models/admin/Pengguna.php';
 
 class TransaksiController {
     private $model;
@@ -71,11 +71,11 @@ class TransaksiController {
                 );
 
                 $_SESSION['success'] = "Transaksi berhasil dibuat! Total Bayar: Rp " . number_format($total_bayar, 0, ',', '.');
-                header("Location: ../views/admin/tabel_transaksi.php");
+                header("Location: ../../views/admin/tabel_transaksi.php");
                 exit();
             } catch (Exception $e) {
                 $_SESSION['error'] = $e->getMessage();
-                header("Location: ../views/admin/tambah_transaksi.php");
+                header("Location: ../../views/admin/tambah_transaksi.php");
                 exit();
             }
         }
@@ -128,11 +128,11 @@ class TransaksiController {
                 }
                 
                 $_SESSION['success'] = "Status transaksi berhasil diperbarui!";
-                header("Location: ../views/admin/tabel_transaksi.php");
+                header("Location: ../../views/admin/tabel_transaksi.php");
                 exit();
             } catch (Exception $e) {
                 $_SESSION['error'] = $e->getMessage();
-                header("Location: ../views/admin/edit_transaksi.php?id=" . $_POST['id_transaksi']);
+                header("Location: ../../views/admin/edit_transaksi.php?id=" . $_POST['id_transaksi']);
                 exit();
             }
         }
@@ -201,7 +201,7 @@ class TransaksiController {
             $_SESSION['error'] = $e->getMessage();
         }
         
-        header("Location: ../views/admin/tabel_transaksi.php");
+        header("Location: ../../views/admin/tabel_transaksi.php");
         exit();
     }
 }

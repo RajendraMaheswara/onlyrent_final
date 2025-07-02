@@ -1,6 +1,6 @@
 <?php
-include_once '../config/connect_db.php';
-include_once '../models/Penyewa.php';
+include_once '../../config/connect_db.php';
+include_once '../../models/admin/Penyewa.php';
 
 class PenyewaController {
     private $model;
@@ -56,7 +56,7 @@ class PenyewaController {
 
                 if ($result) {
                     $_SESSION['success'] = "Penyewa baru berhasil ditambahkan!";
-                    header("Location: ../views/admin/tabel_penyewa.php");
+                    header("Location: ../../views/admin/tabel_penyewa.php");
                     exit();
                 } else {
                     throw new Exception("Gagal menambahkan penyewa baru");
@@ -64,7 +64,7 @@ class PenyewaController {
             } catch (Exception $e) {
                 error_log("Error: " . $e->getMessage()); 
                 $_SESSION['error'] = $e->getMessage();
-                header("Location: ../views/admin/tambah_penyewa.php");
+                header("Location: ../../views/admin/tambah_penyewa.php");
                 exit();
             }
         }
@@ -120,7 +120,7 @@ class PenyewaController {
 
                 if ($result) {
                     $_SESSION['success'] = "Data penyewa berhasil diperbarui!";
-                    header("Location: ../views/admin/tabel_penyewa.php");
+                    header("Location: ../../views/admin/tabel_penyewa.php");
                     exit();
                 } else {
                     throw new Exception("Gagal memperbarui data penyewa");
@@ -128,7 +128,7 @@ class PenyewaController {
             } catch (Exception $e) {
                 error_log("Error: " . $e->getMessage()); 
                 $_SESSION['error'] = $e->getMessage();
-                header("Location: ../views/admin/edit_penyewa.php?id=" . $_POST['id_penyewa']);
+                header("Location: ../../views/admin/edit_penyewa.php?id=" . $_POST['id_penyewa']);
                 exit();
             }
         }
@@ -153,7 +153,7 @@ class PenyewaController {
             $_SESSION['error'] = $e->getMessage();
         }
         
-        header("Location: ../views/admin/tabel_penyewa.php");
+        header("Location: ../../views/admin/tabel_penyewa.php");
         exit();
     }
 

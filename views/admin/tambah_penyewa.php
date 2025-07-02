@@ -77,7 +77,7 @@
                             </h4>
                         </div>
                         <div class="card-body">
-                            <form id="penyewaForm" action="/controllers/PenyewaController.php?action=create" method="POST">
+                            <form id="penyewaForm" action="/controllers/admin/PenyewaController.php?action=create" method="POST">
                                 <h5 class="mb-4">Informasi Akun</h5>
                                 <div class="row">
                                     <div class="col-md-6">

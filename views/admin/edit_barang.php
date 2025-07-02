@@ -7,9 +7,9 @@
 
     // Include koneksi database dan model
     require_once '../../config/connect_db.php';
-    require_once '../../models/Barang.php';
-    require_once '../../models/PemilikBarang.php';
-    require_once '../../models/Pengguna.php';
+    require_once '../../models/admin/Barang.php';
+    require_once '../../models/admin/PemilikBarang.php';
+    require_once '../../models/admin/Pengguna.php';
 
     // Ambil data barang yang akan diedit
     if (!isset($_GET['id'])) {
@@ -132,7 +132,7 @@
                             </h4>
                         </div>
                         <div class="card-body">
-                            <form id="barangForm" action="/controllers/BarangController.php?action=update" method="POST" enctype="multipart/form-data">
+                            <form id="barangForm" action="/controllers/admin/BarangController.php?action=update" method="POST" enctype="multipart/form-data">
                                 <input type="hidden" name="id_barang" value="<?php echo htmlspecialchars($barang_data['id_barang']); ?>">
 
                                 <div class="row">

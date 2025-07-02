@@ -55,7 +55,7 @@ $username = $_SESSION['user']['username'];
                             </h4>
                         </div>
                         <div class="card-body">
-                            <form id="pemilikForm" action="/controllers/PemilikBarangController.php?action=create" method="POST">
+                            <form id="pemilikForm" action="/controllers/admin/PemilikBarangController.php?action=create" method="POST">
                                 <h5 class="mb-3">Informasi Akun</h5>
                                 <div class="row">
                                     <div class="col-md-6">

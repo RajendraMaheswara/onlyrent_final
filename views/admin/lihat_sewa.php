@@ -7,9 +7,9 @@
 
     // Include koneksi database dan model
     require_once '../../config/connect_db.php';
-    require_once '../../models/Sewa.php';
-    require_once '../../models/Barang.php';
-    require_once '../../models/Penyewa.php';
+    require_once '../../models/admin/Sewa.php';
+    require_once '../../models/admin/Barang.php';
+    require_once '../../models/admin/Penyewa.php';
 
     // Ambil data sewa yang akan dilihat
     if (!isset($_GET['id'])) {

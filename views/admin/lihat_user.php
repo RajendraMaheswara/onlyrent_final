@@ -7,7 +7,7 @@
 
     // Include koneksi database dan model
     require_once '../../config/connect_db.php';
-    require_once '../../models/Pengguna.php';
+    require_once '../../models/admin/Pengguna.php';
 
     // Ambil data user yang akan dilihat
     if (!isset($_GET['id'])) {

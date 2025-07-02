@@ -1,7 +1,7 @@
 <?php
-include_once '../config/connect_db.php';
-include_once '../models/Sewa.php';
-include_once '../models/Barang.php';
+include_once '../../config/connect_db.php';
+include_once '../../models/admin/Sewa.php';
+include_once '../../models/admin/Barang.php';
 
 class SewaController {
     private $model;
@@ -47,11 +47,11 @@ class SewaController {
                 $this->barangModel->updateStatus($id_barang, 0);
                 
                 $_SESSION['success'] = "Sewa berhasil dibuat! Total bayar: Rp " . number_format($total_bayar, 0, ',', '.');
-                header("Location: ../views/admin/tabel_sewa.php");
+                header("Location: ../../views/admin/tabel_sewa.php");
                 exit();
             } catch (Exception $e) {
                 $_SESSION['error'] = $e->getMessage();
-                header("Location: ../views/admin/tambah_sewa.php");
+                header("Location: ../../views/admin/tambah_sewa.php");
                 exit();
             }
         }
@@ -106,11 +106,11 @@ class SewaController {
             }
 
             $_SESSION['success'] = "Data sewa berhasil diperbarui!";
-            header("Location: ../views/admin/tabel_sewa.php");
+            header("Location: ../../views/admin/tabel_sewa.php");
             exit();
         } catch (Exception $e) {
             $_SESSION['error'] = $e->getMessage();
-            header("Location: ../views/admin/edit_sewa.php?id=" . $_POST['id_sewa']);
+            header("Location: ../../views/admin/edit_sewa.php?id=" . $_POST['id_sewa']);
             exit();
         }
     }
@@ -152,7 +152,7 @@ class SewaController {
             $_SESSION['error'] = $e->getMessage();
         }
         
-        header("Location: ../views/admin/tabel_sewa.php");
+        header("Location: ../../views/admin/tabel_sewa.php");
         exit();
     }
 }
