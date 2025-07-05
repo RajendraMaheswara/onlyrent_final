@@ -104,7 +104,7 @@ class PenggunaController {
 
                 if ($result) {
                     $_SESSION['success'] = "User berhasil diupdate!";
-                    header("Location: ../views/admin/tabel_user.php");
+                    header("Location: ../../views/admin/tabel_user.php");
                     exit();
                 } else {
                     throw new Exception("Gagal mengupdate user");

@@ -8,7 +8,7 @@
     require_once '../../config/connect_db.php';
     require_once '../../models/admin/Transaksi.php';
     require_once '../../models/admin/Sewa.php';
-    require_once '../../models/admin/.php';
+    require_once '../../models/admin/Penyewa.php';
     require_once '../../models/admin/PemilikBarang.php';
     require_once '../../models/admin/Barang.php';
 

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 02, 2025 at 01:30 AM
+-- Generation Time: Jul 02, 2025 at 12:46 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -42,22 +42,8 @@ CREATE TABLE `barang` (
 --
 
 INSERT INTO `barang` (`id_barang`, `id_pemilik`, `nama_barang`, `gambar`, `deskripsi`, `harga_sewa`, `status`) VALUES
-(21, 1, 'Buku', '[\"011922-02072025-buku-1.jpg\"]', 'Buku', '50000', 1),
-(22, 1, 'Laptop', '[\"011932-02072025-laptop-1.jpg\"]', 'Laptop', '100000', 1);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `chat`
---
-
-CREATE TABLE `chat` (
-  `id_chat` int(11) NOT NULL,
-  `id_pengirim` int(11) NOT NULL,
-  `id_penerima` int(11) NOT NULL,
-  `pesan` text NOT NULL,
-  `tanggal` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+(23, 1, 'Porsche 911 Turbo S', '[\"120600-02072025-porsche-911-turbo-s-1.avif\"]', 'Baru beli kemarin sore', '10000000', 0),
+(24, 1, 'Google Pixel 9 Pro', '[\"122713-02072025-google-pixel-9-pro-1.webp\"]', 'Google Pixel 9 Pro 256GB', '1000000', 1);
 
 -- --------------------------------------------------------
 
@@ -77,7 +63,7 @@ CREATE TABLE `pemilik_barang` (
 --
 
 INSERT INTO `pemilik_barang` (`id_pemilik`, `nama`, `no_telp`, `id_pengguna`) VALUES
-(1, 'Jack of Ace', '081234567890', 8);
+(1, 'Jack', '081234567891', 3);
 
 -- --------------------------------------------------------
 
@@ -99,11 +85,8 @@ CREATE TABLE `pengguna` (
 
 INSERT INTO `pengguna` (`id_pengguna`, `username`, `email`, `password`, `role`) VALUES
 (1, 'Kiing', 'kiing@gmail.com', '$2y$10$5E77VpVvpZjWkZAimoFsOOgY0F3iVR318v1wYcfzVAGcFQuUxzW1K', 1),
-(2, 'Queen', 'queen@gmail.com', '$2y$10$9.oxi/VKYYZf2d.o9Dv.I.jDl92RhjU1ZRxlU3faoYHxMJ0Pyn3gO', 2),
-(4, 'Ace', 'ace@gmail.com', '$2y$10$.81JHrkohfR8oDwB.sYZpeUaaRk/zTBOk5fWwAXP5bC1Fy4u9UFi2', 2),
-(5, 'Sabo', 'sabo@gmail.com', '$2y$10$wZom.fJfzmFIhjSPlIbO9.U4c83L62T6xRcV.agmfoA7x.h0L4CYu', 2),
-(6, 'Luffy', 'luffy@gmail.com', '$2y$10$v1ETxNFpVdUpZADzSkMaq.H288WiSxKvag05IqX7Id5eVdqO6EcGC', 2),
-(8, 'Jack', 'jack@gmail.com', '$2y$10$lhm6QLU.UPnnuhlLXGLigOxx4X8eeBLwBWkEXcP.M6T6PqWIyHs8.', 3);
+(2, 'Queen', 'queen@gmail.com', '$2y$10$cirqS8.gey.KK4q5hcvnVuJ12qaeCTtP68Tp.Gzw3AHKaqnEMHRYK', 2),
+(3, 'Jack', 'jack@gmail.com', '$2y$10$saILztqkGtUnKAz8EakE/u7G1MGull6DM4rXhONsq1DIQEDOKN5ou', 3);
 
 -- --------------------------------------------------------
 
@@ -124,9 +107,7 @@ CREATE TABLE `penyewa` (
 --
 
 INSERT INTO `penyewa` (`id_penyewa`, `nama`, `alamat`, `no_telp`, `id_pengguna`) VALUES
-(1, 'Portgas D. Ace', 'East Blue', '081234567890', 4),
-(2, 'Sa D Bo', 'East Blue', '081234567891', 5),
-(3, 'Mongkey D Luffy', 'East Blue', '081234567892', 6);
+(1, 'Queen', 'Jl. Menata Hati Bersama', '081234567890', 2);
 
 -- --------------------------------------------------------
 
@@ -151,7 +132,7 @@ CREATE TABLE `sewa` (
 --
 
 INSERT INTO `sewa` (`id_sewa`, `id_barang`, `id_penyewa`, `tanggalSewa`, `tanggalKembali`, `totalBayar`, `status`, `created_at`, `updated_at`) VALUES
-(8, 22, 1, '2025-07-02 00:00:00', '2025-07-03 00:00:00', 100000, 2, '2025-07-01 23:19:49', '2025-07-01 23:20:13');
+(9, 23, 1, '2025-07-02 00:00:00', '2025-07-04 00:00:00', 20000000, 1, '2025-07-02 10:22:25', '2025-07-02 10:22:25');
 
 -- --------------------------------------------------------
 
@@ -170,6 +151,13 @@ CREATE TABLE `transaksi` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
+-- Dumping data for table `transaksi`
+--
+
+INSERT INTO `transaksi` (`id_transaksi`, `id_sewa`, `jumlah`, `tanggal`, `totalBayar`, `gambar`, `status`) VALUES
+(1, 9, 1, '2025-07-02 17:28:28', 22500000, '[\"20250702-122828-686509cc903f4.webp\"]', 0);
+
+--
 -- Indexes for dumped tables
 --
 
@@ -178,12 +166,6 @@ CREATE TABLE `transaksi` (
 --
 ALTER TABLE `barang`
   ADD PRIMARY KEY (`id_barang`);
-
---
--- Indexes for table `chat`
---
-ALTER TABLE `chat`
-  ADD PRIMARY KEY (`id_chat`);
 
 --
 -- Indexes for table `pemilik_barang`
@@ -223,13 +205,7 @@ ALTER TABLE `transaksi`
 -- AUTO_INCREMENT for table `barang`
 --
 ALTER TABLE `barang`
-  MODIFY `id_barang` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
-
---
--- AUTO_INCREMENT for table `chat`
---
-ALTER TABLE `chat`
-  MODIFY `id_chat` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_barang` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT for table `pemilik_barang`
@@ -241,25 +217,25 @@ ALTER TABLE `pemilik_barang`
 -- AUTO_INCREMENT for table `pengguna`
 --
 ALTER TABLE `pengguna`
-  MODIFY `id_pengguna` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id_pengguna` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `penyewa`
 --
 ALTER TABLE `penyewa`
-  MODIFY `id_penyewa` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_penyewa` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `sewa`
 --
 ALTER TABLE `sewa`
-  MODIFY `id_sewa` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id_sewa` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `transaksi`
 --
 ALTER TABLE `transaksi`
-  MODIFY `id_transaksi` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_transaksi` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

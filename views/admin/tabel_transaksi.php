@@ -12,7 +12,6 @@
     require_once '../../config/connect_db.php';
     $conn = getDBConnection();
 
-    // Inisialisasi variabel $transaksi dengan array kosong
     $transaksi = [];
     $total_transaksi = 0;
     $pending_count = 0;
@@ -20,7 +19,6 @@
     $failed_count = 0;
     $total_pendapatan = 0;
 
-    // Hitung total transaksi
     $total_query = "SELECT COUNT(*) as total FROM transaksi";
     $total_result = $conn->query($total_query);
 
@@ -29,7 +27,6 @@
         $total_transaksi = $total_row['total'];
     }
 
-    // Hitung status transaksi dan total pendapatan
     $status_query = "SELECT status, COUNT(*) as count, SUM(totalBayar) as total FROM transaksi GROUP BY status";
     $status_result = $conn->query($status_query);
 
@@ -426,6 +423,26 @@
         };
         
         statusModal.show();
+    }
+
+    function confirmDelete(penyewaId, penyewaName) {
+        // Menampilkan modal konfirmasi dan mengganti nama penyewa
+        document.getElementById('deletePenyewaName').textContent = penyewaName;
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        
+        // Menghapus event listener sebelumnya (jika ada)
+        confirmDeleteBtn.replaceWith(confirmDeleteBtn.cloneNode(true));
+        const newConfirmBtn = document.getElementById('confirmDeleteBtn');
+        
+        // Menambahkan event listener baru
+        newConfirmBtn.onclick = function() {
+            // Redirect ke controller untuk proses hapus
+            window.location.href = '/controllers/admin/PenyewaController.php?action=delete&id=' + penyewaId;
+        };
+
+        // Menampilkan modal konfirmasi
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
     }
 
     // Inisialisasi DataTable
