@@ -1,21 +1,35 @@
 <?php
-// Database configuration - better to use config file
-$config = [
-    'host' => 'localhost',
-    'dbname' => 'onlyrentdone',
-    'username' => 'root',
-    'password' => ''
-];
+session_start();
+if (!isset($_SESSION['user'])) {
+    header("Location: ../../login.php");
+    exit();
+}
 
-// Database connection with better error handling
+require_once '../../config/connect_db.php';
+require_once '../../models/penyewa/Barang.php';
+
+$db = getDBConnection();
+$barang_model = new Barang($db);
+
+// Input validation and sanitization
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$category = isset($_GET['category']) ? trim($_GET['category']) : '';
+$sort = isset($_GET['sort']) ? $_GET['sort'] : 'nama_barang';
+
+$allowed_sorts = ['nama_barang', 'price_low', 'price_high', 'status'];
+if (!in_array($sort, $allowed_sorts)) {
+    $sort = 'nama_barang';
+}
+
 try {
-    $pdo = new PDO("mysql:host={$config['host']};dbname={$config['dbname']}", 
-                   $config['username'], $config['password']);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-} catch(PDOException $e) {
-    error_log("Database connection failed: " . $e->getMessage());
-    die("Koneksi database gagal. Silakan coba lagi nanti.");
+    $products = $barang_model->getAvailableProducts($search, $category, $sort);
+    $categories = array_unique(array_column($products, 'category'));
+    sort($categories);
+} catch(Exception $e) {
+    error_log("Error: " . $e->getMessage());
+    $error_message = "Terjadi kesalahan saat mengambil data. Silakan coba lagi nanti.";
+    $products = [];
+    $categories = [];
 }
 
 // Input validation and sanitization
@@ -36,9 +50,12 @@ $error_message = '';
 
 try {
     // Build query with proper parameter binding - FIXED: Added 'gambar' column
-    $query = "SELECT id_barang, id_pemilik, nama_barang, gambar, deskripsi, harga_sewa, status 
-              FROM barang 
-              WHERE status = 'tersedia'";
+    $query = "SELECT b.id_barang, b.id_pemilik, b.nama_barang, b.gambar, 
+                 b.deskripsi, b.harga_sewa, b.status,
+                 pb.nama as nama_pemilik
+          FROM barang b
+          JOIN pemilik_barang pb ON b.id_pemilik = pb.id_pemilik
+          WHERE b.status = 1"; // 1 = tersedia
     $params = [];
 
     // Apply search filter in SQL
@@ -88,10 +105,18 @@ try {
             $query .= " ORDER BY nama_barang ASC";
     }
 
-    // Execute main query
-    $stmt = $pdo->prepare($query);
-    $stmt->execute($params);
-    $raw_products = $stmt->fetchAll();
+    // Execute main query menggunakan MySQLi
+        $stmt = $db->prepare($query);
+
+        // Bind parameter jika ada
+        if (!empty($params)) {
+            $types = str_repeat('s', count($params)); // Semua parameter dianggap string
+            $stmt->bind_param($types, ...$params);
+        }
+
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $raw_products = $result->fetch_all(MYSQLI_ASSOC);
 
     // FIXED: Transform data sesuai dengan struktur database yang baru
     foreach($raw_products as $raw_product) {
@@ -198,31 +223,6 @@ function get_status_badge($status) {
             return '<span style="background: #6b7280; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">' . ucfirst($status) . '</span>';
     }
 }
-
-// ADDED: Helper function untuk handle gambar
-function get_safe_image_url($image_path) {
-    if (empty($image_path)) {
-        return null;
-    }
-    
-    // If it's already a full URL, return as is
-    if (filter_var($image_path, FILTER_VALIDATE_URL)) {
-        return $image_path;
-    }
-    
-    // Check if local file exists
-    if (file_exists($image_path)) {
-        return $image_path;
-    }
-    
-    // Check in uploads directory
-    $uploads_path = 'uploads/' . basename($image_path);
-    if (file_exists($uploads_path)) {
-        return $uploads_path;
-    }
-    
-    return null;
-}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -231,476 +231,7 @@ function get_safe_image_url($image_path) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OnlyRent - Camera Rental Marketplace</title>
     <meta name="description" content="Sewa kamera dan peralatan fotografi terbaik di OnlyRent">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            backdrop-filter: blur(10px);
-        }
-
-        .header {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-            animation: rotate 20s linear infinite;
-        }
-
-        @keyframes rotate {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-            position: relative;
-            z-index: 1;
-        }
-
-        .search-section {
-            padding: 30px;
-            background: white;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .search-form {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .search-input {
-            flex: 1;
-            min-width: 250px;
-            padding: 15px 20px;
-            border: 2px solid #e5e7eb;
-            border-radius: 12px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-        }
-
-        .filter-select {
-            padding: 15px 20px;
-            border: 2px solid #e5e7eb;
-            border-radius: 12px;
-            font-size: 16px;
-            background: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .filter-select:focus {
-            outline: none;
-            border-color: #4f46e5;
-        }
-
-        .search-btn {
-            padding: 15px 25px;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-        }
-
-        .search-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
-        }
-
-        .categories {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .category-btn {
-            padding: 10px 20px;
-            background: #f3f4f6;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 500;
-            text-decoration: none;
-            color: #374151;
-        }
-
-        .category-btn:hover, .category-btn.active {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
-            transform: translateY(-1px);
-        }
-
-        .products-section {
-            padding: 30px;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1f2937;
-        }
-
-        .products-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 25px;
-        }
-
-        .product-card {
-            background: white;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-            border: 1px solid #f3f4f6;
-        }
-
-        .product-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        }
-
-        .product-image {
-            width: 100%;
-            height: 200px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 3rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .product-image::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.3);
-        }
-
-        .product-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .product-info {
-            padding: 20px;
-        }
-
-        .product-category {
-            font-size: 0.8rem;
-            color: #6b7280;
-            text-transform: uppercase;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .product-name {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 8px;
-            line-height: 1.3;
-        }
-
-        .product-description {
-            color: #6b7280;
-            font-size: 0.9rem;
-            margin-bottom: 15px;
-            line-height: 1.5;
-        }
-
-        .product-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .product-rating {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .stars {
-            color: #fbbf24;
-        }
-
-        .rating-text {
-            font-size: 0.9rem;
-            color: #6b7280;
-        }
-
-        .product-price {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #1f2937;
-        }
-
-        .price-period {
-            font-size: 0.9rem;
-            color: #6b7280;
-            font-weight: 400;
-        }
-
-        .rent-btn {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .rent-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
-        }
-
-        .no-products {
-            text-align: center;
-            padding: 60px 20px;
-            color: #6b7280;
-        }
-
-        .no-products h3 {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-        }
-
-        .error-message {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #dc2626;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .search-form {
-                flex-direction: column;
-            }
-            
-            .search-input {
-                min-width: 100%;
-            }
-            
-            .section-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .products-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        /* Modal Styles */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(5px);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-content {
-    background: white;
-    border-radius: 20px;
-    max-width: 500px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 30px;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.modal-header h3 {
-    margin: 0;
-    color: #1f2937;
-}
-
-.close-btn {
-    font-size: 24px;
-    cursor: pointer;
-    color: #6b7280;
-    transition: color 0.3s ease;
-}
-
-.close-btn:hover {
-    color: #1f2937;
-}
-
-.modal-body {
-    padding: 30px;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 600;
-    color: #374151;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 12px 15px;
-    border: 2px solid #e5e7eb;
-    border-radius: 8px;
-    font-size: 16px;
-    transition: border-color 0.3s ease;
-}
-
-.form-group input:focus {
-    outline: none;
-    border-color: #4f46e5;
-}
-
-.total-price {
-    background: #f3f4f6;
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    text-align: center;
-    font-size: 18px;
-}
-
-.submit-btn {
-    width: 100%;
-    padding: 15px;
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.submit-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
-}
-
-.product-detail {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 20px;
-    padding: 15px;
-    background: #f9fafb;
-    border-radius: 10px;
-}
-
-.product-detail img {
-    width: 80px;
-    height: 80px;
-    object-fit: cover;
-    border-radius: 8px;
-}
-
-.product-detail-info h4 {
-    margin: 0 0 5px 0;
-    color: #1f2937;
-}
-
-.product-detail-info p {
-    margin: 0;
-    color: #6b7280;
-    font-size: 14px;
-}
-
-.product-detail-price {
-    font-weight: 700;
-    color: #4f46e5;
-    margin-top: 5px;
-}
-    </style>
+    <link rel="stylesheet" href="../../assets/css/penyewa/index.css">
 </head>
 <body>
     <div class="container">
@@ -741,6 +272,7 @@ function get_safe_image_url($image_path) {
                     <option value="rating" <?php echo $sort === 'rating' ? 'selected' : ''; ?>>Rating Tertinggi</option>
                 </select>
 
+                <button type="" class="search-btn">Transaksi</button>
                 <button type="submit" class="search-btn">🔍 Cari</button>
             </form>
 
@@ -771,13 +303,20 @@ function get_safe_image_url($image_path) {
                     <?php foreach($products as $product): ?>
                         <div class="product-card">
                             <div class="product-image">
-                                <?php if (!empty($product['image'])): ?>
-                                    <img src="<?php echo safe_output($product['image']); ?>" 
-                                         alt="<?php echo safe_output($product['name']); ?>"
-                                         loading="lazy">
-                                <?php else: ?>
-                                    📷
-                                <?php endif; ?>
+                                <?php 
+                                // Use the processed image path from the model
+                                $imagePath = $product['image'] ?? 'https://via.placeholder.com/400x300?text=No+Image';
+                                
+                                // Ensure path is properly formatted
+                                if (!filter_var($imagePath, FILTER_VALIDATE_URL)) {
+                                    // If it's not a full URL, prepend with base URL if needed
+                                    $imagePath = '/' . ltrim($imagePath, '/');
+                                }
+                                ?>
+                                <img src="<?php echo htmlspecialchars($imagePath); ?>" 
+                                    alt="<?php echo htmlspecialchars($product['name']); ?>"
+                                    loading="lazy"
+                                    onerror="this.src='https://via.placeholder.com/400x300?text=Image+Not+Found'">
                             </div>
                             
                             <div class="product-info">
@@ -809,6 +348,7 @@ function get_safe_image_url($image_path) {
         </div>
     </div>
 <!-- Rental Modal -->
+<!-- Update the Rental Modal in index.php -->
 <div id="rentalModal" class="modal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
@@ -817,22 +357,21 @@ function get_safe_image_url($image_path) {
         </div>
         <div class="modal-body">
             <div id="modalProductInfo"></div>
-            <form id="rentalForm">
+            <form id="rentalForm" method="POST" action="process_rental.php" enctype="multipart/form-data" onsubmit="return submitRentalForm(event)">
+                <input type="hidden" name="id_barang" id="modalProductId">
+                <input type="hidden" name="harga_sewa" id="modalProductPrice">
+                
                 <div class="form-group">
                     <label>Tanggal Mulai:</label>
-                    <input type="date" id="startDate" required>
+                    <input type="date" name="tanggal_sewa" id="startDate" required>
                 </div>
                 <div class="form-group">
                     <label>Tanggal Selesai:</label>
-                    <input type="date" id="endDate" required>
+                    <input type="date" name="tanggal_kembali" id="endDate" required>
                 </div>
                 <div class="form-group">
-                    <label>Nama Lengkap:</label>
-                    <input type="text" id="customerName" required>
-                </div>
-                <div class="form-group">
-                    <label>No. Telepon:</label>
-                    <input type="tel" id="customerPhone" required>
+                    <label>Bukti Pembayaran:</label>
+                    <input type="file" name="bukti_pembayaran" accept="image/*" required>
                 </div>
                 <div class="total-price">
                     <strong>Total: <span id="totalPrice">Rp 0</span></strong>
@@ -845,6 +384,7 @@ function get_safe_image_url($image_path) {
     <script>
 let currentProduct = null;
 
+// Update the rentProduct function
 function rentProduct(productId) {
     if (!productId || productId <= 0) {
         alert('ID produk tidak valid');
@@ -873,6 +413,10 @@ function rentProduct(productId) {
         </div>
     `;
     
+    // Set product ID and price in hidden fields
+    document.getElementById('modalProductId').value = currentProduct.id;
+    document.getElementById('modalProductPrice').value = currentProduct.price;
+    
     // Set minimum date to today
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('startDate').min = today;
@@ -881,6 +425,51 @@ function rentProduct(productId) {
     // Show modal
     document.getElementById('rentalModal').style.display = 'flex';
 }
+
+function submitRentalForm(event) {
+    event.preventDefault(); // Prevent default form submission
+    
+    // Validate form
+    const form = document.getElementById('rentalForm');
+    const startDate = form.elements['tanggal_sewa'].value;
+    const endDate = form.elements['tanggal_kembali'].value;
+    const paymentProof = form.elements['bukti_pembayaran'].files[0];
+    
+    if (!startDate || !endDate) {
+        alert('Harap isi tanggal sewa dan tanggal kembali');
+        return false;
+    }
+    
+    if (!paymentProof) {
+        alert('Harap upload bukti pembayaran');
+        return false;
+    }
+    
+    // Submit form via AJAX
+    const formData = new FormData(form);
+    
+    fetch('process_rental.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Sewa berhasil dikonfirmasi!');
+            closeModal();
+            window.location.reload(); // Refresh page to update status
+        } else {
+            alert('Error: ' + (data.message || 'Gagal memproses sewa'));
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+    
+    return false;
+}
+
+// Keep the rest of the JavaScript functions the same
 
 function closeModal() {
     document.getElementById('rentalModal').style.display = 'none';
@@ -947,6 +536,12 @@ document.querySelector('.search-form').addEventListener('submit', function(e) {
         alert('Kata kunci pencarian terlalu panjang (maksimal 100 karakter)');
         e.preventDefault();
     }
+});
+
+document.querySelectorAll('.product-image img').forEach(img => {
+    img.onerror = function() {
+        this.src = 'https://media.licdn.com/dms/image/v2/C5112AQEw1fXuabCTyQ/article-inline_image-shrink_1500_2232/article-inline_image-shrink_1500_2232/0/1581099611064?e=1756944000&v=beta&t=BmiOV7zE4n6uu9FyS4bB1ajJtQhYZNvHu2Q6bsQPXYg';
+    };
 });
 </script>
 </body>
