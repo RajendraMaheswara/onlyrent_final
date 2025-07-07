@@ -32,165 +32,6 @@ try {
     $categories = [];
 }
 
-// Input validation and sanitization
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$category = isset($_GET['category']) ? trim($_GET['category']) : '';
-$sort = isset($_GET['sort']) ? $_GET['sort'] : 'nama_barang';
-
-// Validate sort parameter
-$allowed_sorts = ['nama_barang', 'price_low', 'price_high', 'status'];
-if (!in_array($sort, $allowed_sorts)) {
-    $sort = 'nama_barang';
-}
-
-// Initialize variables
-$products = [];
-$categories = [];
-$error_message = '';
-
-try {
-    // Build query with proper parameter binding - FIXED: Added 'gambar' column
-    $query = "SELECT b.id_barang, b.id_pemilik, b.nama_barang, b.gambar, 
-                 b.deskripsi, b.harga_sewa, b.status,
-                 pb.nama as nama_pemilik
-          FROM barang b
-          JOIN pemilik_barang pb ON b.id_pemilik = pb.id_pemilik
-          WHERE b.status = 1"; // 1 = tersedia
-    $params = [];
-
-    // Apply search filter in SQL
-    if (!empty($search)) {
-        $query .= " AND (nama_barang LIKE ? OR deskripsi LIKE ?)";
-        $params[] = "%{$search}%";
-        $params[] = "%{$search}%";
-    }
-
-    // Apply category filter (berdasarkan kategori yang auto-detect dari nama)
-    if (!empty($category)) {
-        $query .= " AND (
-            (? = 'Kamera' AND (LOWER(nama_barang) LIKE '%kamera%' OR LOWER(nama_barang) LIKE '%camera%')) OR
-            (? = 'Lensa' AND (LOWER(nama_barang) LIKE '%lensa%' OR LOWER(nama_barang) LIKE '%lens%')) OR
-            (? = 'Tripod' AND LOWER(nama_barang) LIKE '%tripod%') OR
-            (? = 'Lighting' AND (LOWER(nama_barang) LIKE '%flash%' OR LOWER(nama_barang) LIKE '%lighting%' OR LOWER(nama_barang) LIKE '%godox%')) OR
-            (? = 'Stabilizer' AND (LOWER(nama_barang) LIKE '%gimbal%' OR LOWER(nama_barang) LIKE '%stabilizer%' OR LOWER(nama_barang) LIKE '%ronin%')) OR
-            (? = 'Audio' AND (LOWER(nama_barang) LIKE '%mic%' OR LOWER(nama_barang) LIKE '%audio%' OR LOWER(nama_barang) LIKE '%rode%')) OR
-            (? = 'Aksesoris' AND NOT (
-                LOWER(nama_barang) LIKE '%kamera%' OR LOWER(nama_barang) LIKE '%camera%' OR
-                LOWER(nama_barang) LIKE '%lensa%' OR LOWER(nama_barang) LIKE '%lens%' OR
-                LOWER(nama_barang) LIKE '%tripod%' OR LOWER(nama_barang) LIKE '%flash%' OR 
-                LOWER(nama_barang) LIKE '%lighting%' OR LOWER(nama_barang) LIKE '%godox%' OR
-                LOWER(nama_barang) LIKE '%gimbal%' OR LOWER(nama_barang) LIKE '%stabilizer%' OR 
-                LOWER(nama_barang) LIKE '%ronin%' OR LOWER(nama_barang) LIKE '%mic%' OR 
-                LOWER(nama_barang) LIKE '%audio%' OR LOWER(nama_barang) LIKE '%rode%'
-            ))
-        )";
-        // Add category parameter 7 times for each condition
-        for($i = 0; $i < 7; $i++) {
-            $params[] = $category;
-        }
-    }
-
-    // Apply sorting in SQL
-    switch($sort) {
-        case 'price_low':
-            $query .= " ORDER BY harga_sewa ASC";
-            break;
-        case 'price_high':
-            $query .= " ORDER BY harga_sewa DESC";
-            break;
-        case 'status':
-            $query .= " ORDER BY status ASC";
-            break;
-        default:
-            $query .= " ORDER BY nama_barang ASC";
-    }
-
-    // Execute main query menggunakan MySQLi
-        $stmt = $db->prepare($query);
-
-        // Bind parameter jika ada
-        if (!empty($params)) {
-            $types = str_repeat('s', count($params)); // Semua parameter dianggap string
-            $stmt->bind_param($types, ...$params);
-        }
-
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $raw_products = $result->fetch_all(MYSQLI_ASSOC);
-
-    // FIXED: Transform data sesuai dengan struktur database yang baru
-    foreach($raw_products as $raw_product) {
-        $product = [];
-        $product['id'] = $raw_product['id_barang'];
-        $product['name'] = $raw_product['nama_barang'];
-        $product['description'] = $raw_product['deskripsi'];
-        $product['price'] = $raw_product['harga_sewa'];
-        $product['rating'] = 4.5; // Default rating, bisa disesuaikan atau ambil dari tabel rating
-        $product['status'] = $raw_product['status'];
-        $product['id_pemilik'] = $raw_product['id_pemilik'];
-        
-        // FIXED: Handle gambar dari database
-        $nama_lower = strtolower($product['name']);
-        
-        // Prioritaskan gambar dari database
-        if (!empty($raw_product['gambar'])) {
-            // Check if gambar is a full URL or just filename
-            if (filter_var($raw_product['gambar'], FILTER_VALIDATE_URL)) {
-                $product['image'] = $raw_product['gambar'];
-            } else {
-                // Assume it's a filename stored in uploads directory
-                $product['image'] = 'uploads/' . $raw_product['gambar'];
-            }
-        } else {
-            // Fallback ke default images berdasarkan kategori jika gambar kosong
-            if (strpos($nama_lower, 'kamera') !== false || strpos($nama_lower, 'camera') !== false) {
-                $product['image'] = 'https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=400';
-            } elseif (strpos($nama_lower, 'lensa') !== false || strpos($nama_lower, 'lens') !== false) {
-                $product['image'] = 'https://images.unsplash.com/photo-1617005082133-548c4dd27717?w=400';
-            } elseif (strpos($nama_lower, 'tripod') !== false) {
-                $product['image'] = 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400';
-            } elseif (strpos($nama_lower, 'flash') !== false || strpos($nama_lower, 'lighting') !== false || strpos($nama_lower, 'godox') !== false) {
-                $product['image'] = 'https://images.unsplash.com/photo-1517592043066-3c9c4f6b4c7e?w=400';
-            } elseif (strpos($nama_lower, 'gimbal') !== false || strpos($nama_lower, 'stabilizer') !== false || strpos($nama_lower, 'ronin') !== false) {
-                $product['image'] = 'https://images.unsplash.com/photo-1551410224-699683e15636?w=400';
-            } elseif (strpos($nama_lower, 'mic') !== false || strpos($nama_lower, 'audio') !== false || strpos($nama_lower, 'rode') !== false) {
-                $product['image'] = 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=400';
-            } else {
-                $product['image'] = 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400';
-            }
-        }
-        
-        // Auto-detect kategori berdasarkan nama barang
-        if (strpos($nama_lower, 'kamera') !== false || strpos($nama_lower, 'camera') !== false) {
-            $product['category'] = 'Kamera';
-        } elseif (strpos($nama_lower, 'lensa') !== false || strpos($nama_lower, 'lens') !== false) {
-            $product['category'] = 'Lensa';
-        } elseif (strpos($nama_lower, 'tripod') !== false) {
-            $product['category'] = 'Tripod';
-        } elseif (strpos($nama_lower, 'flash') !== false || strpos($nama_lower, 'lighting') !== false || strpos($nama_lower, 'godox') !== false) {
-            $product['category'] = 'Lighting';
-        } elseif (strpos($nama_lower, 'gimbal') !== false || strpos($nama_lower, 'stabilizer') !== false || strpos($nama_lower, 'ronin') !== false) {
-            $product['category'] = 'Stabilizer';
-        } elseif (strpos($nama_lower, 'mic') !== false || strpos($nama_lower, 'audio') !== false || strpos($nama_lower, 'rode') !== false) {
-            $product['category'] = 'Audio';
-        } else {
-            $product['category'] = 'Aksesoris';
-        }
-        
-        $products[] = $product;
-    }
-
-    // Get categories for filter (berdasarkan produk yang ada)
-    $categories = array_unique(array_column($products, 'category'));
-    sort($categories);
-
-} catch(PDOException $e) {
-    error_log("Database query error: " . $e->getMessage());
-    $error_message = "Terjadi kesalahan saat mengambil data. Silakan coba lagi nanti.";
-    $products = [];
-    $categories = [];
-}
-
 // Helper function for safe output
 function safe_output($text, $max_length = null) {
     $safe_text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
@@ -232,6 +73,92 @@ function get_status_badge($status) {
     <title>OnlyRent - Camera Rental Marketplace</title>
     <meta name="description" content="Sewa kamera dan peralatan fotografi terbaik di OnlyRent">
     <link rel="stylesheet" href="../../assets/css/penyewa/index.css">
+    <style>
+/* Add these styles to your CSS */
+.payment-methods {
+    margin: 20px 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    background: #f9f9f9;
+}
+
+.payment-tabs {
+    display: flex;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.payment-tab {
+    padding: 8px 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #666;
+    border-bottom: 2px solid transparent;
+}
+
+.payment-tab.active {
+    color: #0066cc;
+    border-bottom: 2px solid #0066cc;
+    font-weight: bold;
+}
+
+.payment-content {
+    padding: 10px 0;
+}
+
+.qr-code-container {
+    text-align: center;
+    margin: 15px 0;
+    padding: 10px;
+    background: white;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+.qr-code {
+    width: 150px;
+    height: 150px;
+}
+
+.ewallet-options, .bank-details {
+    margin: 15px 0;
+}
+
+.ewallet-option, .bank-option {
+    margin: 8px 0;
+    padding: 10px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+.bank-option label {
+    display: flex;
+    align-items: center;
+}
+
+.bank-logo {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+    object-fit: contain;
+}
+
+.payment-instruction {
+    background: #f0f8ff;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.payment-instruction ol {
+    padding-left: 20px;
+    margin: 8px 0;
+}
+</style>
 </head>
 <body>
     <div class="container">
@@ -243,11 +170,11 @@ function get_status_badge($status) {
 
         <!-- Search Section -->
         <div class="search-section">
-            <?php if ($error_message): ?>
+            <!-- <?php if ($error_message): ?>
                 <div class="error-message">
                     <?php echo safe_output($error_message); ?>
                 </div>
-            <?php endif; ?>
+            <?php endif; ?> -->
 
             <form class="search-form" method="GET" action="">
                 <input type="text" name="search" class="search-input" 
@@ -272,8 +199,12 @@ function get_status_badge($status) {
                     <option value="rating" <?php echo $sort === 'rating' ? 'selected' : ''; ?>>Rating Tertinggi</option>
                 </select>
 
-                <button type="" class="search-btn">Transaksi</button>
-                <button type="submit" class="search-btn">🔍 Cari</button>
+                <div class="button-container">
+                    <a href="transaksi.php">
+                        <button type="button" class="search-btn">Transaksi</button>
+                    </a>
+                    <button type="submit" class="search-btn">🔍 Cari</button>
+                </div>
             </form>
 
             <div class="categories">
@@ -303,24 +234,22 @@ function get_status_badge($status) {
                     <?php foreach($products as $product): ?>
                         <div class="product-card">
                             <div class="product-image">
-                                <?php 
-                                // Use the processed image path from the model
-                                $imagePath = $product['image'] ?? 'https://via.placeholder.com/400x300?text=No+Image';
-                                
-                                // Ensure path is properly formatted
-                                if (!filter_var($imagePath, FILTER_VALIDATE_URL)) {
-                                    // If it's not a full URL, prepend with base URL if needed
-                                    $imagePath = '/' . ltrim($imagePath, '/');
-                                }
-                                ?>
-                                <img src="<?php echo htmlspecialchars($imagePath); ?>" 
-                                    alt="<?php echo htmlspecialchars($product['name']); ?>"
-                                    loading="lazy"
-                                    onerror="this.src='https://via.placeholder.com/400x300?text=Image+Not+Found'">
-                            </div>
+                            <?php if (!empty($product['image'])): ?>
+                                <img src="<?php echo htmlspecialchars($product['image']); ?>" 
+                                    alt="<?php echo htmlspecialchars($product['name']); ?>" 
+                                    class="img-thumbnail"
+                                    style="width: 100%; height: 200px; object-fit: cover;"
+                                    onerror="this.src='https://via.placeholder.com/300x200?text=Image+Not+Found'">
+                            <?php else: ?>
+                                <div class="no-image" 
+                                    style="width: 100%; height: 200px; background: #f0f0f0; display: flex; align-items: center; justify-content: center;">
+                                    <span>No Image</span>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                             
                             <div class="product-info">
-                                <div class="product-category"><?php echo safe_output($product['category']); ?></div>
+                                <!-- <div class="product-category"><?php echo safe_output($product['category']); ?></div> -->
                                 <h3 class="product-name"><?php echo safe_output($product['name']); ?></h3>
                                 <p class="product-description"><?php echo safe_output($product['description'], 100); ?></p>
                                 
@@ -347,9 +276,9 @@ function get_status_badge($status) {
             <?php endif; ?>
         </div>
     </div>
-<!-- Rental Modal -->
-<!-- Update the Rental Modal in index.php -->
-<div id="rentalModal" class="modal" style="display: none;">
+
+    <!-- Rental Modal -->
+    <div id="rentalModal" class="modal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
             <h3>Sewa Produk</h3>
@@ -357,7 +286,7 @@ function get_status_badge($status) {
         </div>
         <div class="modal-body">
             <div id="modalProductInfo"></div>
-            <form id="rentalForm" method="POST" action="process_rental.php" enctype="multipart/form-data" onsubmit="return submitRentalForm(event)">
+            <form id="rentalForm" method="POST" action="proses_rental.php" enctype="multipart/form-data" onsubmit="return submitRentalForm(event)">
                 <input type="hidden" name="id_barang" id="modalProductId">
                 <input type="hidden" name="harga_sewa" id="modalProductPrice">
                 
@@ -369,10 +298,82 @@ function get_status_badge($status) {
                     <label>Tanggal Selesai:</label>
                     <input type="date" name="tanggal_kembali" id="endDate" required>
                 </div>
+                
+                <!-- Payment Method Section -->
+                <div class="payment-methods">
+                    <h4>Metode Pembayaran</h4>
+                    
+                    <div class="payment-tabs">
+                        <button type="button" class="payment-tab active" onclick="openPaymentTab('ewallet')">E-Wallet</button>
+                        <button type="button" class="payment-tab" onclick="openPaymentTab('bank')">Transfer Bank</button>
+                    </div>
+                    
+                    <!-- E-Wallet Content -->
+                    <div id="ewalletContent" class="payment-content">
+                        <p>Scan QR code berikut untuk pembayaran:</p>
+                        <div class="qr-code-container">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=OnlyRentPayment-<?php echo time(); ?>" 
+                                 alt="QR Code Pembayaran" class="qr-code">
+                        </div>
+                        <div class="ewallet-options">
+                            <div class="ewallet-option">
+                                <input type="radio" id="gopay" name="ewallet" value="gopay" checked>
+                                <label for="gopay">GoPay</label>
+                            </div>
+                            <div class="ewallet-option">
+                                <input type="radio" id="ovo" name="ewallet" value="ovo">
+                                <label for="ovo">OVO</label>
+                            </div>
+                            <div class="ewallet-option">
+                                <input type="radio" id="dana" name="ewallet" value="dana">
+                                <label for="dana">DANA</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bank Transfer Content -->
+                    <div id="bankContent" class="payment-content" style="display:none;">
+                        <p>Transfer ke rekening berikut:</p>
+                        <div class="bank-details">
+                            <div class="bank-option">
+                                <input type="radio" id="bca" name="bank" value="bca" checked>
+                                <label for="bca">
+                                    <img src="https://images.seeklogo.com/logo-png/39/1/bca-bank-central-asia-logo-png_seeklogo-399949.png" alt="BCA" class="bank-logo">
+                                    <strong>BCA</strong> - 1234567890 (OnlyRent)
+                                </label>
+                            </div>
+                            <div class="bank-option">
+                                <input type="radio" id="mandiri" name="bank" value="mandiri">
+                                <label for="mandiri">
+                                    <img src="https://www.cdnlogo.com/logos/b/21/bank-mandiri.svg" alt="Mandiri" class="bank-logo">
+                                    <strong>Mandiri</strong> - 9876543210 (OnlyRent)
+                                </label>
+                            </div>
+                            <div class="bank-option">
+                                <input type="radio" id="bri" name="bank" value="bri">
+                                <label for="bri">
+                                    <img src="https://seeklogo.com/images/B/bank-bri-logo-32EFAA879E-seeklogo.com.png" alt="BRI" class="bank-logo">
+                                    <strong>BRI</strong> - 5678901234 (OnlyRent)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="payment-instruction">
+                            <p><strong>Instruksi Pembayaran:</strong></p>
+                            <ol>
+                                <li>Pilih bank tujuan</li>
+                                <li>Transfer sesuai total pembayaran</li>
+                                <li>Masukkan kode <strong>ONLYRENT</strong> di pesan transfer</li>
+                                <li>Upload bukti transfer di bawah</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label>Bukti Pembayaran:</label>
                     <input type="file" name="bukti_pembayaran" accept="image/*" required>
                 </div>
+                
                 <div class="total-price">
                     <strong>Total: <span id="totalPrice">Rp 0</span></strong>
                 </div>
@@ -381,168 +382,168 @@ function get_status_badge($status) {
         </div>
     </div>
 </div>
+
     <script>
-let currentProduct = null;
+    let currentProduct = null;
 
-// Update the rentProduct function
-function rentProduct(productId) {
-    if (!productId || productId <= 0) {
-        alert('ID produk tidak valid');
-        return;
-    }
-    
-    // Find product by ID
-    const products = <?php echo json_encode($products); ?>;
-    currentProduct = products.find(p => p.id == productId);
-    
-    if (!currentProduct) {
-        alert('Produk tidak ditemukan');
-        return;
-    }
-    
-    // Populate modal
-    const modalInfo = document.getElementById('modalProductInfo');
-    modalInfo.innerHTML = `
-        <div class="product-detail">
-            <img src="${currentProduct.image || 'https://via.placeholder.com/80x80?text=📷'}" alt="${currentProduct.name}">
-            <div class="product-detail-info">
-                <h4>${currentProduct.name}</h4>
-                <p>${currentProduct.category}</p>
-                <div class="product-detail-price">Rp ${new Intl.NumberFormat('id-ID').format(currentProduct.price)}/hari</div>
-            </div>
-        </div>
-    `;
-    
-    // Set product ID and price in hidden fields
-    document.getElementById('modalProductId').value = currentProduct.id;
-    document.getElementById('modalProductPrice').value = currentProduct.price;
-    
-    // Set minimum date to today
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('startDate').min = today;
-    document.getElementById('endDate').min = today;
-    
-    // Show modal
-    document.getElementById('rentalModal').style.display = 'flex';
-}
-
-function submitRentalForm(event) {
-    event.preventDefault(); // Prevent default form submission
-    
-    // Validate form
-    const form = document.getElementById('rentalForm');
-    const startDate = form.elements['tanggal_sewa'].value;
-    const endDate = form.elements['tanggal_kembali'].value;
-    const paymentProof = form.elements['bukti_pembayaran'].files[0];
-    
-    if (!startDate || !endDate) {
-        alert('Harap isi tanggal sewa dan tanggal kembali');
-        return false;
-    }
-    
-    if (!paymentProof) {
-        alert('Harap upload bukti pembayaran');
-        return false;
-    }
-    
-    // Submit form via AJAX
-    const formData = new FormData(form);
-    
-    fetch('process_rental.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Sewa berhasil dikonfirmasi!');
-            closeModal();
-            window.location.reload(); // Refresh page to update status
-        } else {
-            alert('Error: ' + (data.message || 'Gagal memproses sewa'));
+    function rentProduct(productId) {
+        if (!productId || productId <= 0) {
+            alert('ID produk tidak valid');
+            return;
         }
-    })
-    .catch(error => {
-        alert('Error: ' + error.message);
+        
+        // Find product by ID
+        const products = <?php echo json_encode($products); ?>;
+        currentProduct = products.find(p => p.id == productId);
+        
+        if (!currentProduct) {
+            alert('Produk tidak ditemukan');
+            return;
+        }
+        
+        // Populate modal
+        const modalInfo = document.getElementById('modalProductInfo');
+        modalInfo.innerHTML = `
+            <div class="product-detail">
+                <img src="${currentProduct.image || 'https://via.placeholder.com/80x80?text=📷'}" alt="${currentProduct.name}">
+                <div class="product-detail-info">
+                    <h4>${currentProduct.name}</h4>
+                    <p>${currentProduct.category}</p>
+                    <div class="product-detail-price">Rp ${new Intl.NumberFormat('id-ID').format(currentProduct.price)}/hari</div>
+                </div>
+            </div>
+        `;
+        
+        // Set product ID and price in hidden fields
+        document.getElementById('modalProductId').value = currentProduct.id;
+        document.getElementById('modalProductPrice').value = currentProduct.price;
+        
+        // Set minimum date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('startDate').min = today;
+        document.getElementById('endDate').min = today;
+        
+        // Show modal
+        document.getElementById('rentalModal').style.display = 'flex';
+    }
+
+    function submitRentalForm(event) {
+        event.preventDefault();
+        
+        const form = document.getElementById('rentalForm');
+        const formData = new FormData(form);
+        
+        // Validasi tanggal
+        const startDate = form.elements['tanggal_sewa'].value;
+        const endDate = form.elements['tanggal_kembali'].value;
+        
+        if (!startDate || !endDate) {
+            alert('Harap isi tanggal sewa dan tanggal kembali');
+            return false;
+        }
+        
+        if (new Date(startDate) > new Date(endDate)) {
+            alert('Tanggal selesai harus setelah tanggal mulai');
+            return false;
+        }
+        
+        // Tampilkan loading
+        const submitBtn = form.querySelector('.submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Memproses...';
+        
+        // Submit form secara tradisional (bukan AJAX)
+        form.submit();
+    }
+
+    function closeModal() {
+        document.getElementById('rentalModal').style.display = 'none';
+        document.getElementById('rentalForm').reset();
+        currentProduct = null;
+    }
+
+    function calculateTotal() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        if (startDate && endDate && currentProduct) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include start day
+            
+            if (diffDays > 0) {
+                const total = diffDays * currentProduct.price;
+                document.getElementById('totalPrice').textContent = 
+                    `Rp ${new Intl.NumberFormat('id-ID').format(total)} (${diffDays} hari)`;
+            }
+        }
+    }
+
+    // Event listeners
+    document.getElementById('startDate').addEventListener('change', function() {
+        document.getElementById('endDate').min = this.value;
+        calculateTotal();
+    });
+
+    document.getElementById('endDate').addEventListener('change', calculateTotal);
+
+    document.getElementById('rentalForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            productId: currentProduct.id,
+            productName: currentProduct.name,
+            startDate: document.getElementById('startDate').value,
+            endDate: document.getElementById('endDate').value,
+            customerName: document.getElementById('customerName').value,
+            customerPhone: document.getElementById('customerPhone').value,
+            totalPrice: document.getElementById('totalPrice').textContent
+        };
+        
+        // Simulate API call
+        alert(`Rental berhasil dikonfirmasi!\n\nDetail:\n${formData.productName}\n${formData.startDate} - ${formData.endDate}\nPenyewa: ${formData.customerName}\nTotal: ${formData.totalPrice}`);
+        
+        closeModal();
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('rentalModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal();
+        }
+    });
+
+    // Form validation
+    document.querySelector('.search-form').addEventListener('submit', function(e) {
+        const searchInput = this.querySelector('input[name="search"]');
+        if (searchInput.value.length > 100) {
+            alert('Kata kunci pencarian terlalu panjang (maksimal 100 karakter)');
+            e.preventDefault();
+        }
+    });
+
+    document.querySelectorAll('.product-image img').forEach(img => {
+        img.onerror = function() {
+            this.src = 'https://media.licdn.com/dms/image/v2/C5112AQEw1fXuabCTyQ/article-inline_image-shrink_1500_2232/article-inline_image-shrink_1500_2232/0/1581099611064?e=1756944000&v=beta&t=BmiOV7zE4n6uu9FyS4bB1ajJtQhYZNvHu2Q6bsQPXYg';
+        };
+    });
+
+    function openPaymentTab(tabName) {
+    // Hide all payment content
+    document.querySelectorAll('.payment-content').forEach(content => {
+        content.style.display = 'none';
     });
     
-    return false;
+    // Show the selected content
+    document.getElementById(tabName + 'Content').style.display = 'block';
+    
+    // Update tab styles
+    document.querySelectorAll('.payment-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    event.currentTarget.classList.add('active');
 }
-
-// Keep the rest of the JavaScript functions the same
-
-function closeModal() {
-    document.getElementById('rentalModal').style.display = 'none';
-    document.getElementById('rentalForm').reset();
-    currentProduct = null;
-}
-
-function calculateTotal() {
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-    
-    if (startDate && endDate && currentProduct) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        const diffTime = Math.abs(end - start);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include start day
-        
-        if (diffDays > 0) {
-            const total = diffDays * currentProduct.price;
-            document.getElementById('totalPrice').textContent = 
-                `Rp ${new Intl.NumberFormat('id-ID').format(total)} (${diffDays} hari)`;
-        }
-    }
-}
-
-// Event listeners
-document.getElementById('startDate').addEventListener('change', function() {
-    document.getElementById('endDate').min = this.value;
-    calculateTotal();
-});
-
-document.getElementById('endDate').addEventListener('change', calculateTotal);
-
-document.getElementById('rentalForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = {
-        productId: currentProduct.id,
-        productName: currentProduct.name,
-        startDate: document.getElementById('startDate').value,
-        endDate: document.getElementById('endDate').value,
-        customerName: document.getElementById('customerName').value,
-        customerPhone: document.getElementById('customerPhone').value,
-        totalPrice: document.getElementById('totalPrice').textContent
-    };
-    
-    // Simulate API call
-    alert(`Rental berhasil dikonfirmasi!\n\nDetail:\n${formData.productName}\n${formData.startDate} - ${formData.endDate}\nPenyewa: ${formData.customerName}\nTotal: ${formData.totalPrice}`);
-    
-    closeModal();
-});
-
-// Close modal when clicking outside
-document.getElementById('rentalModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeModal();
-    }
-});
-
-// Form validation
-document.querySelector('.search-form').addEventListener('submit', function(e) {
-    const searchInput = this.querySelector('input[name="search"]');
-    if (searchInput.value.length > 100) {
-        alert('Kata kunci pencarian terlalu panjang (maksimal 100 karakter)');
-        e.preventDefault();
-    }
-});
-
-document.querySelectorAll('.product-image img').forEach(img => {
-    img.onerror = function() {
-        this.src = 'https://media.licdn.com/dms/image/v2/C5112AQEw1fXuabCTyQ/article-inline_image-shrink_1500_2232/article-inline_image-shrink_1500_2232/0/1581099611064?e=1756944000&v=beta&t=BmiOV7zE4n6uu9FyS4bB1ajJtQhYZNvHu2Q6bsQPXYg';
-    };
-});
-</script>
+    </script>
 </body>
 </html>

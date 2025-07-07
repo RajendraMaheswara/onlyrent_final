@@ -112,18 +112,23 @@ class Barang {
     $product['status'] = $raw_product['status'] == 1 ? 'tersedia' : 'tidak tersedia';
     $product['rating'] = $this->getProductRating($raw_product['id_barang']);
     
-    // Handle gambar - decode JSON and get first image
+    // Handle image path properly
     $gambar = json_decode($raw_product['gambar'], true) ?? [];
-    $product['gambar'] = $gambar; // Store the array of images
     
-    // Set image path - ensure it's relative to web root
     if (!empty($gambar)) {
-        $product['image'] = '/assets/images/barang/' . $gambar[0];
+        // Get the first image and ensure it's a proper path
+        $firstImage = is_array($gambar) ? reset($gambar) : $gambar;
+        
+        // If it's already a full URL, use it as is
+        if (filter_var($firstImage, FILTER_VALIDATE_URL)) {
+            $product['image'] = $firstImage;
+        } else {
+            // Otherwise, prepend the correct base path
+            $product['image'] = '/assets/images/barang/' . ltrim($firstImage, '/');
+        }
     } else {
         $product['image'] = $this->getDefaultImage($raw_product['nama_barang']);
     }
-    
-    $product['category'] = $this->detectProductCategory($product['name']);
     
     return $product;
 }

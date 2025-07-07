@@ -1,26 +1,23 @@
 <?php
 session_start();
 require_once '../../config/connect_db.php';
-require_once '../../models/Sewa.php';
-require_once '../../models/Transaksi.php';
-require_once '../../models/Barang.php';
+require_once '../../models/admin/Sewa.php';
+require_once '../../models/admin/Transaksi.php';
+require_once '../../models/admin/Barang.php';
 
-header('Content-Type: application/json');
-
-$response = ['success' => false, 'message' => ''];
+// Validasi user login
+if (!isset($_SESSION['user']) || !isset($_SESSION['user']['id_penyewa'])) {
+    $_SESSION['sewa_error'] = "Anda harus login terlebih dahulu";
+    header("Location: index.php");
+    exit();
+}
 
 try {
-    // Validate request method
+    // Validasi input
     if ($_SERVER['REQUEST_METHOD'] != 'POST') {
-        throw new Exception("Invalid request method");
+        throw new Exception("Metode request tidak valid");
     }
 
-    // Validate user session
-    if (!isset($_SESSION['user'])) {  // Fixed: Added the missing parenthesis here
-        throw new Exception("Anda harus login terlebih dahulu");
-    }
-
-    // Validate input
     $required = ['id_barang', 'tanggal_sewa', 'tanggal_kembali', 'harga_sewa'];
     foreach ($required as $field) {
         if (empty($_POST[$field])) {
@@ -32,14 +29,14 @@ try {
         throw new Exception("Bukti pembayaran harus diupload");
     }
 
-    // Process the rental
+    // Proses data
     $id_barang = $_POST['id_barang'];
     $id_penyewa = $_SESSION['user']['id_penyewa'];
     $tanggal_sewa = $_POST['tanggal_sewa'];
     $tanggal_kembali = $_POST['tanggal_kembali'];
     $harga_sewa = $_POST['harga_sewa'];
 
-    // Calculate rental days and total
+    // Hitung total bayar
     $start = new DateTime($tanggal_sewa);
     $end = new DateTime($tanggal_kembali);
     $days = $start->diff($end)->days + 1;
@@ -47,7 +44,7 @@ try {
     $admin_fee = $total_bayar * 0.125;
     $total_with_fee = $total_bayar + $admin_fee;
 
-    // Handle file upload
+    // Upload bukti pembayaran
     $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/assets/images/transaksi/';
     if (!file_exists($uploadDir)) {
         mkdir($uploadDir, 0777, true);
@@ -64,13 +61,13 @@ try {
 
     $gambarJson = json_encode([$newFileName]);
 
-    // Create models
+    // Buat koneksi database dan model
     $db = getDBConnection();
     $sewaModel = new Sewa($db);
     $transaksiModel = new Transaksi($db);
     $barangModel = new Barang($db);
 
-    // Create rental
+    // Buat sewa
     $id_sewa = $sewaModel->create(
         $id_barang,
         $id_penyewa,
@@ -79,22 +76,30 @@ try {
         $total_bayar
     );
 
-    // Create transaction
+    // Buat transaksi
     $transaksiModel->create(
         $id_sewa,
-        1,
+        1, // Jumlah
         $total_with_fee,
         $gambarJson
     );
 
-    // Update item status
+    // Update status barang
     $barangModel->updateStatus($id_barang, 0);
 
-    $response['success'] = true;
-    $response['message'] = "Sewa berhasil dibuat! Total Bayar: Rp " . number_format($total_with_fee, 0, ',', '.');
+    // Set session untuk halaman transaksi
+    $_SESSION['sewa_success'] = [
+        'id_sewa' => $id_sewa,
+        'total_bayar' => $total_with_fee,
+        'tanggal_sewa' => $tanggal_sewa,
+        'tanggal_kembali' => $tanggal_kembali
+    ];
+
+    header("Location: transaksi.php");
+    exit();
 
 } catch (Exception $e) {
-    $response['message'] = $e->getMessage();
+    $_SESSION['sewa_error'] = $e->getMessage();
+    header("Location: index.php");
+    exit();
 }
-
-echo json_encode($response);

@@ -86,14 +86,14 @@
                                         <label for="role">Role</label>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <!-- <div class="col-md-6">
                                     <div class="form-floating">
                                         <input type="text" class="form-control" id="status" name="status" 
                                             value="<?php echo isset($user['status']) ? ($user['status'] == 1 ? 'Aktif' : 'Non-Aktif') : 'Status Tidak Ditemukan'; ?>" 
                                             disabled>
                                         <label for="status">Status</label>
                                     </div>
-                                </div>
+                                </div> -->
                             </div>
 
                             <div class="d-flex justify-content-between align-items-center mt-4">
